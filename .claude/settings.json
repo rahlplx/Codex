@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Glob(**)",
+      "Grep(**)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)"
+    ],
+    "deny": []
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"ts\":\"`date -u +%Y-%m-%dT%H:%M:%SZ`\",\"event\":\"bash_tool_use\"}' >> logs/telemetry/$(date +%Y-%m-%d).jsonl 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
