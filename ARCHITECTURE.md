@@ -268,7 +268,7 @@ services:
     ports:
       - "5173:80"
     environment:
-      - VITE_BACKEND_URL=http://backend:3001
+      - VITE_BACKEND_URL=/api
     depends_on:
       - backend
 
@@ -280,12 +280,11 @@ services:
       - ./data:/app/data          # SQLite DB, config persistence
       - ./config:/app/config      # Provider configs
     environment:
-      - DATABASE_URL=sqlite:///app/data/codex.db
+      - DATABASE_PATH=/app/data/codex.db
       - OPENCODE_ZEN_ENABLED=true
       - OPENROUTER_FREE_ENABLED=true
       - NEMOTRON_ENABLED=true
-    depends_on:
-      - nine-router               # Optional sidecar
+    # nine-router is optional; start with: docker compose --profile routers up
 
   # --- Tier 2: Community Router Sidecars (optional) ---
   
