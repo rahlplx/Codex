@@ -2,7 +2,28 @@
 
 ## Vision
 
-A self-hostable coding agent WebUI with a multi-CLI backend that aggregates free AI token sources (OpenCode Zen, Antigravity/Gemini, KiloCode, Nemotron, OpenRouter) and community router repos (9Router, CliRelay, CLIProxyAPI, AIClient2API) into a single unified interface — maximizing free compute while maintaining a polished, production-grade UX.
+A self-hostable, multi-tenant coding agent WebUI with a multi-CLI backend that aggregates free AI token sources (OpenCode Zen, Antigravity/Gemini, KiloCode, Nemotron, OpenRouter) and community router repos (9Router, CliRelay, CLIProxyAPI, AIClient2API) into a single unified interface — maximizing free compute while maintaining a polished, production-grade UX.
+
+## Target VPS
+
+| Resource | Spec |
+|----------|------|
+| CPU | 4 vCPU (AMD) |
+| RAM | 8 GB |
+| Storage | 75 GB Gen 4 PCIe NVMe SSD |
+| Network | 200 Mbit/s, unlimited traffic (fair use) |
+| Snapshots | 1 free snapshot |
+
+See `knowledge/architecture/vps-constraints.md` for resource budgets and optimization.
+
+## Key Requirements
+
+1. **Dynamic model registry** — free models change daily/weekly; auto-discovery, health probing, circuit breakers
+2. **Telemetry-driven routing** — score models by success rate, latency, quality; data-driven defaults
+3. **Multi-tenant** — user isolation, per-tenant API keys, fair-share free-tier pooling
+4. **Hermes-style auth UI** — visual card-based provider management with auto-config, OAuth where needed
+5. **Telegram bot bridge** — chat + quota/health alerts
+6. **All providers from day 1** — Tier 1 (free CLIs) + Tier 2 (community routers) + Tier 3 (BYOK)
 
 ## Why This Approach
 
@@ -468,9 +489,24 @@ routing:
 ### 3. Why SQLite for storage
 - Zero external dependencies (no Postgres/Redis needed)
 - Embedded in the backend process
-- Perfect for single-VPS self-hosting
+- Perfect for single-VPS self-hosting (8GB RAM constraint)
 - Easy backup (one file to copy)
+- WAL mode for concurrent multi-tenant reads
 - Can migrate to Postgres later if needed
+
+### 5. Why multi-tenant
+- Single VPS serving multiple users maximizes hardware utilization
+- Per-tenant API key isolation (encrypted at rest)
+- Fair-share pooling of free-tier providers prevents one user hogging quota
+- Admin role for system management, user role for regular access
+- See `knowledge/architecture/multi-tenant.md` for full schema
+
+### 6. Why telemetry-driven routing
+- Free model availability changes daily/weekly — can't rely on static config
+- Auto-discovery scanner detects added/removed models hourly
+- Health prober runs every 60s with circuit breakers
+- Composite scoring: 35% reliability + 25% speed + 20% quality + 15% cost + 5% recency
+- See `knowledge/models/model-routing.md` for full algorithm
 
 ### 4. Why Docker Compose
 - Sidecars (9Router, CliRelay) are separate processes with their own dependencies

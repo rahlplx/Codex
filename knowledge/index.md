@@ -17,6 +17,8 @@ A self-hostable coding agent WebUI with a multi-CLI backend that aggregates free
 - [Backend (Express)](/architecture/backend.md)
 - [CLI Orchestrator](/architecture/orchestrator.md)
 - [Proxy Layer](/architecture/proxy-layer.md)
+- [Multi-Tenant](/architecture/multi-tenant.md)
+- [VPS Constraints](/architecture/vps-constraints.md)
 - [Deployment](/architecture/deployment.md)
 
 ## Providers (Tier 1 — Direct CLI Adapters)
@@ -42,7 +44,11 @@ A self-hostable coding agent WebUI with a multi-CLI backend that aggregates free
 
 - [Model Catalog](/models/index.md)
 - [Free Models](/models/free-models.md)
-- [Model Routing](/models/model-routing.md)
+- [Model Routing & Dynamic Registry](/models/model-routing.md)
+
+## UI/UX Design
+
+- [Provider Settings (Hermes-style)](/design/provider-settings.md)
 
 ## API Reference
 

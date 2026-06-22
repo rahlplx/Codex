@@ -8,6 +8,22 @@ timestamp: 2026-06-22T00:00:00Z
 
 # Change Log
 
+## 2026-06-22 — Scope Expansion: Multi-Tenant, Telemetry, Dynamic Registry
+
+- Added **dynamic model registry** with auto-discovery, health probing, circuit breakers
+- Added **telemetry-driven routing** with composite scoring algorithm
+- Added **multi-tenant architecture** with user isolation, encrypted API keys, fair-share quotas
+- Added **Hermes-style provider settings UI** with ASCII wireframes for:
+  - Provider dashboard with health cards
+  - Add API Key modal with auto-validation
+  - OAuth connect flow
+  - Telemetry dashboard with model rankings
+- Added **VPS resource constraints** (4 vCPU, 8GB RAM, 75GB NVMe) with Docker resource limits
+- Created `AGENTS.md` — agentic engineering guide with adapter development workflow
+- Confirmed: Telegram bot bridge retained
+- Confirmed: multi-user/multi-tenant support
+- Fixed Docker Compose issues from Gemini Code Assist review
+
 ## 2026-06-22 — Project Inception
 
 - Analyzed [codex-mobile](https://github.com/friuns2/codex-mobile) (Vue 3 + Express, 9656 LOC bridge, full chat UI)
