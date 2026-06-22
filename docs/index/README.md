@@ -31,3 +31,24 @@ Master catalog of all documents in this repository. Update this file whenever a 
 | File | Role |
 |------|------|
 | [roles.md](../agents/roles.md) | Agent role definitions |
+
+## Memory
+
+| File | Description |
+|------|-------------|
+| [README.md](../memory/README.md) | Persistent cross-session state |
+| [architecture.md](../memory/architecture.md) | System-level architectural decisions |
+| [api-quirks.md](../memory/api-quirks.md) | External API gotchas |
+| [lessons.md](../memory/lessons.md) | Mistakes and resolutions |
+
+## Context
+
+| File | Description |
+|------|-------------|
+| [README.md](../context/README.md) | Assembled context windows and prompt templates |
+
+## Brainstorming
+
+| File | Description |
+|------|-------------|
+| [README.md](../brainstorming/README.md) | Explorations, spikes, and hypotheses |

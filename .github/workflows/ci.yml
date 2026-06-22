@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint placeholder
-        run: echo "No linter configured yet — add one in docs/todos/BACKLOG.md"
+        run: echo "No linter configured yet. Add one via docs/todos/BACKLOG.md"
 
   unit-tests:
     name: Unit Tests
@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unit tests placeholder
-        run: echo "No test runner configured yet — add one in docs/todos/BACKLOG.md"
+        run: echo "No test runner configured yet. Add one via docs/todos/BACKLOG.md"
 
   integration-tests:
     name: Integration Tests
@@ -45,12 +45,29 @@ jobs:
   telemetry:
     name: Telemetry Push
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests, e2e-tests]
-    if: always()
+    needs: [lint, unit-tests, integration-tests, e2e-tests]
+    if: ${{ always() }}
     steps:
-      - uses: actions/checkout@v4
       - name: Record pipeline run
+        env:
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          LINT_RESULT: ${{ needs.lint.result }}
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          INT_RESULT: ${{ needs.integration-tests.result }}
+          E2E_RESULT: ${{ needs.e2e-tests.result }}
         run: |
-          mkdir -p logs/pipeline
-          echo "{\"run_id\":\"${{ github.run_id }}\",\"sha\":\"${{ github.sha }}\",\"ref\":\"${{ github.ref }}\",\"status\":\"${{ job.status }}\",\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
-            >> logs/pipeline/${{ github.run_id }}.jsonl
+          TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          {
+            echo "## Pipeline Run: ${RUN_ID}"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            echo "| Lint | ${LINT_RESULT} |"
+            echo "| Unit Tests | ${UNIT_RESULT} |"
+            echo "| Integration Tests | ${INT_RESULT} |"
+            echo "| E2E Tests | ${E2E_RESULT} |"
+            echo ""
+            echo "**SHA:** ${SHA} | **Ref:** ${REF} | **Time:** ${TS}"
+          } >> "$GITHUB_STEP_SUMMARY"
