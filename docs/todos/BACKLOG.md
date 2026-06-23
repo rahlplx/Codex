@@ -7,9 +7,9 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
 | P0 | Fix ci.yml for self-hosted runner (bracket notation) | DevOps | CI |
-| P1 | Build Antigravity CLI adapter (OAuth flow) | Engineer | Backend |
-| P1 | Build KiloCode adapter | Engineer | Backend |
-| P1 | Implement dynamic model discovery scanner (hourly) | Engineer | Backend |
+| P1 | ~~Build Antigravity CLI adapter (OAuth flow)~~ | ~~Engineer~~ | ~~Backend~~ |
+| P1 | ~~Build KiloCode adapter~~ | ~~Engineer~~ | ~~Backend~~ |
+| P1 | ~~Implement dynamic model discovery scanner (hourly)~~ | ~~Engineer~~ | ~~Backend~~ |
 | P2 | 9Router sidecar integration | Engineer | Backend |
 | P2 | CliRelay sidecar integration | Engineer | Backend |
 | P2 | Telegram bot bridge (port from codex-mobile) | Engineer | Feature |
@@ -70,3 +70,10 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Resolve all 8 Gemini code review findings on PR #8 |
 | 2026-06-23 | Merge PR #7 (vitest 2.x → 4.x security bump) |
 | 2026-06-23 | Rebase PR #8 onto updated main (clean, no conflicts) |
+| 2026-06-23 | Fix all 63 TypeScript compilation errors (PR #10 merged) |
+| 2026-06-23 | Resolve all 4 Gemini review findings on PR #10 |
+| 2026-06-23 | Build Antigravity (Google Gemini) adapter with 14 tests |
+| 2026-06-23 | Build KiloCode adapter with 13 tests |
+| 2026-06-23 | Implement ModelDiscoveryScanner with hourly scan + 12 tests |
+| 2026-06-23 | Wire new adapters + scanner into server index |
+| 2026-06-23 | Evolve harness to 121 assertions (Loops 19-20) |

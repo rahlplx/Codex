@@ -23,6 +23,8 @@ export function loadConfig(): AppConfig {
       'opencode-zen': { enabled: process.env['OPENCODE_ZEN_ENABLED'] !== 'false' },
       'nemotron': { enabled: process.env['NEMOTRON_ENABLED'] !== 'false' },
       'openrouter-free': { enabled: process.env['OPENROUTER_FREE_ENABLED'] !== 'false', apiKey: process.env['OPENROUTER_API_KEY'] },
+      'antigravity': { enabled: process.env['ANTIGRAVITY_ENABLED'] !== 'false', apiKey: process.env['GOOGLE_AI_API_KEY'] },
+      'kilocode': { enabled: process.env['KILOCODE_ENABLED'] !== 'false', apiKey: process.env['KILOCODE_API_KEY'] },
     },
   }
 }

@@ -159,6 +159,8 @@ assert_nonempty "backend/src/adapters/base.ts"
 assert_nonempty "backend/src/adapters/opencode-zen.ts"
 assert_nonempty "backend/src/adapters/nemotron.ts"
 assert_nonempty "backend/src/adapters/openrouter-free.ts"
+assert_nonempty "backend/src/adapters/antigravity.ts"
+assert_nonempty "backend/src/adapters/kilocode.ts"
 assert_nonempty "backend/src/adapters/registry.ts"
 
 # --- Loop 12: Backend orchestrator ---
@@ -227,6 +229,24 @@ assert_nonempty "frontend/src/components/codex-agent/ProviderDashboardPanel.vue"
 assert_contains "frontend/src/components/codex-agent/AdminDashboardPanel.vue" "isAdmin"
 assert_contains "frontend/src/router/index.ts" "admin"
 assert_contains "frontend/src/router/index.ts" "telemetry"
+
+# --- Loop 19: New adapters wiring ---
+echo ""
+echo "[ Loop 19 ] New adapters wiring"
+assert_contains "backend/src/adapters/antigravity.ts" "AntigravityAdapter"
+assert_contains "backend/src/adapters/antigravity.ts" "generativelanguage.googleapis.com"
+assert_contains "backend/src/adapters/kilocode.ts" "KiloCodeAdapter"
+assert_contains "backend/src/index.ts" "AntigravityAdapter"
+assert_contains "backend/src/index.ts" "KiloCodeAdapter"
+
+# --- Loop 20: Model discovery scanner ---
+echo ""
+echo "[ Loop 20 ] Model discovery scanner"
+assert_nonempty "backend/src/discovery/scanner.ts"
+assert_contains "backend/src/discovery/scanner.ts" "ModelDiscoveryScanner"
+assert_contains "backend/src/discovery/scanner.ts" "scan"
+assert_contains "backend/src/discovery/scanner.ts" "findByCapability"
+assert_contains "backend/src/index.ts" "ModelDiscoveryScanner"
 
 # --- Summary ---
 echo ""
