@@ -560,6 +560,40 @@
                 <span class="sidebar-settings-value">{{ cliAdaptersStatusText }}</span>
               </button>
               <div v-if="isCliAdaptersOpen" class="sidebar-settings-cli-panel">
+                <!-- Auto routing toggle -->
+                <div class="sidebar-settings-cli-auto-row">
+                  <span class="sidebar-settings-cli-auto-label">
+                    {{ t('Auto routing') }}
+                    <span class="sidebar-settings-cli-auto-badge">{{ t('adaptive') }}</span>
+                  </span>
+                  <span class="sidebar-settings-cli-auto-hint">{{ t('Learns best adapter per domain') }}</span>
+                  <span
+                    class="sidebar-settings-toggle"
+                    :class="{ 'is-on': isAutoRoutingEnabled }"
+                    role="switch"
+                    :aria-checked="isAutoRoutingEnabled"
+                    tabindex="0"
+                    @click="toggleAutoRouting"
+                    @keydown.space.prevent="toggleAutoRouting"
+                    @keydown.enter.prevent="toggleAutoRouting"
+                  />
+                </div>
+                <!-- Routing intel — visible when auto is on and data exists -->
+                <div v-if="isAutoRoutingEnabled && autoRoutingStats.length > 0" class="sidebar-settings-cli-intel">
+                  <div class="sidebar-settings-cli-intel-header">{{ t('Current routing intelligence') }}</div>
+                  <div v-for="rank in autoRoutingStats" :key="rank.domain" class="sidebar-settings-cli-intel-row">
+                    <span class="sidebar-settings-cli-intel-domain">{{ rank.domain }}</span>
+                    <span class="sidebar-settings-cli-intel-arrow">→</span>
+                    <span class="sidebar-settings-cli-intel-adapter">{{ rank.preferredAdapter }}</span>
+                    <span class="sidebar-settings-cli-intel-stat">{{ rank.successRate }}% · {{ rank.avgLatencyMs }}ms</span>
+                  </div>
+                </div>
+                <div v-else-if="isAutoRoutingEnabled" class="sidebar-settings-cli-intel-empty">
+                  {{ t('No routing data yet — will learn from usage') }}
+                </div>
+                <!-- Adapter divider -->
+                <div class="sidebar-settings-cli-divider" />
+                <!-- Per-adapter rows -->
                 <div v-for="adapter in CLI_ADAPTERS" :key="adapter.id" class="sidebar-settings-cli-row">
                   <span
                     class="sidebar-settings-cli-dot"
@@ -569,13 +603,14 @@
                       'is-error': cliAdapterStatus[adapter.id] === 'error',
                     }"
                   />
-                  <span class="sidebar-settings-cli-name">{{ adapter.name }}</span>
+                  <span class="sidebar-settings-cli-name" :class="{ 'is-muted': isAutoRoutingEnabled }">{{ adapter.name }}</span>
                   <span class="sidebar-settings-cli-tier" :class="`is-${adapter.tier}`">{{ adapter.tier }}</span>
                   <span
                     class="sidebar-settings-toggle"
                     :class="{ 'is-on': cliAdapterEnabled[adapter.id] !== false }"
                     role="switch"
                     :aria-checked="cliAdapterEnabled[adapter.id] !== false"
+                    :title="isAutoRoutingEnabled ? t('Auto mode active — toggle to exclude adapter') : ''"
                     tabindex="0"
                     @click="toggleCliAdapter(adapter.id)"
                     @keydown.space.prevent="toggleCliAdapter(adapter.id)"
@@ -1771,6 +1806,7 @@ const DICTATION_CLICK_TO_TOGGLE_KEY = 'codex-web-local.dictation-click-to-toggle
 const DICTATION_AUTO_SEND_KEY = 'codex-web-local.dictation-auto-send.v1'
 const DICTATION_LANGUAGE_KEY = 'codex-web-local.dictation-language.v1'
 const CLI_ADAPTERS_ENABLED_KEY = 'codex-web-local.cli-adapters-enabled.v1'
+const CLI_AUTO_ROUTING_KEY = 'codex-web-local.cli-auto-routing.v1'
 
 const CLI_ADAPTERS = [
   { id: 'opencode-zen', name: 'OpenCode Zen', tier: 'free' },
@@ -1825,11 +1861,22 @@ const customEndpointWireApi = ref<'responses' | 'chat'>('responses')
 const openRouterWireApi = ref<'responses' | 'chat'>('responses')
 const opencodeZenKey = ref('')
 const isTelegramConfigOpen = ref(false)
+interface AutoRankingEntry {
+  domain: string
+  preferredAdapter: string
+  score: number
+  calls: number
+  successRate: number
+  avgLatencyMs: number
+}
+
 const isCliAdaptersOpen = ref(false)
+const isAutoRoutingEnabled = ref(loadBoolPref(CLI_AUTO_ROUTING_KEY, true))
 const cliAdapterEnabled = ref<Record<string, boolean>>((() => {
   try { return JSON.parse(window.localStorage.getItem(CLI_ADAPTERS_ENABLED_KEY) ?? '{}') as Record<string, boolean> } catch { return {} }
 })())
 const cliAdapterStatus = ref<Record<string, string>>({})
+const autoRoutingStats = ref<AutoRankingEntry[]>([])
 const telegramBotTokenDraft = ref('')
 const telegramAllowedUserIdsDraft = ref('')
 const telegramConfigError = ref('')
@@ -2316,11 +2363,37 @@ async function fetchCliAdapterStatus() {
   try {
     const res = await fetch('/api/providers')
     if (!res.ok) return
-    const data = await res.json() as Array<{ id: string; status: string }>
+    const data: unknown = await res.json()
     if (!Array.isArray(data)) return
     const map: Record<string, string> = {}
-    for (const p of data) { if (p.id) map[p.id] = p.status }
+    for (const p of data) {
+      if (p && typeof p === 'object' && 'id' in p && 'status' in p && typeof (p as Record<string, unknown>)['id'] === 'string') {
+        map[(p as Record<string, unknown>)['id'] as string] = String((p as Record<string, unknown>)['status'])
+      }
+    }
     cliAdapterStatus.value = map
+  } catch {}
+}
+
+async function fetchAutoRoutingStats() {
+  try {
+    const res = await fetch('/api/routing/auto-stats')
+    if (!res.ok) return
+    const data: unknown = await res.json()
+    if (data && typeof data === 'object' && 'rankings' in data && Array.isArray((data as Record<string, unknown>)['rankings'])) {
+      autoRoutingStats.value = (data as { rankings: AutoRankingEntry[] }).rankings
+    }
+  } catch {}
+}
+
+async function syncCliPreferencesToBackend() {
+  const disabledAdapters = CLI_ADAPTERS.filter(a => cliAdapterEnabled.value[a.id] === false).map(a => a.id)
+  try {
+    await fetch('/api/routing/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ autoRouting: isAutoRoutingEnabled.value, disabledAdapters }),
+    })
   } catch {}
 }
 
@@ -2328,9 +2401,22 @@ function toggleCliAdapter(id: string) {
   const current = cliAdapterEnabled.value[id] !== false
   cliAdapterEnabled.value = { ...cliAdapterEnabled.value, [id]: !current }
   window.localStorage.setItem(CLI_ADAPTERS_ENABLED_KEY, JSON.stringify(cliAdapterEnabled.value))
+  syncCliPreferencesToBackend()
 }
 
-watch(isCliAdaptersOpen, (open) => { if (open) fetchCliAdapterStatus() })
+function toggleAutoRouting() {
+  isAutoRoutingEnabled.value = !isAutoRoutingEnabled.value
+  window.localStorage.setItem(CLI_AUTO_ROUTING_KEY, isAutoRoutingEnabled.value ? '1' : '0')
+  syncCliPreferencesToBackend()
+  if (isAutoRoutingEnabled.value) fetchAutoRoutingStats()
+}
+
+watch(isCliAdaptersOpen, (open) => {
+  if (open) {
+    fetchCliAdapterStatus()
+    if (isAutoRoutingEnabled.value) fetchAutoRoutingStats()
+  }
+})
 
 onMounted(() => {
   document.addEventListener('pointerdown', onDocumentPointerDown)
@@ -5907,6 +5993,62 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
   @apply text-xs text-zinc-400 hover:text-zinc-600 px-3 py-1.5 text-left transition cursor-pointer;
 }
 
+.sidebar-settings-cli-auto-row {
+  @apply flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-2 border-b border-zinc-100;
+}
+
+.sidebar-settings-cli-auto-label {
+  @apply text-sm font-medium text-zinc-700 flex items-center gap-1.5 flex-1;
+}
+
+.sidebar-settings-cli-auto-badge {
+  @apply text-xs px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-600 font-medium;
+}
+
+.sidebar-settings-cli-auto-hint {
+  @apply text-xs text-zinc-400 w-full ml-0;
+}
+
+.sidebar-settings-cli-divider {
+  @apply border-t border-zinc-100 mx-3 my-1;
+}
+
+.sidebar-settings-cli-intel {
+  @apply px-3 py-2 flex flex-col gap-1;
+}
+
+.sidebar-settings-cli-intel-header {
+  @apply text-xs font-medium text-zinc-400 mb-0.5;
+}
+
+.sidebar-settings-cli-intel-row {
+  @apply flex items-center gap-1.5 text-xs;
+}
+
+.sidebar-settings-cli-intel-domain {
+  @apply text-zinc-500 w-16 shrink-0 capitalize;
+}
+
+.sidebar-settings-cli-intel-arrow {
+  @apply text-zinc-300;
+}
+
+.sidebar-settings-cli-intel-adapter {
+  @apply text-zinc-700 flex-1 font-mono text-xs;
+}
+
+.sidebar-settings-cli-intel-stat {
+  @apply text-zinc-400 text-xs whitespace-nowrap;
+}
+
+.sidebar-settings-cli-intel-empty {
+  @apply px-3 py-2 text-xs text-zinc-400 italic;
+}
+
+.sidebar-settings-cli-name.is-muted {
+  @apply text-zinc-500;
+}
+
 :root.dark .sidebar-settings-cli-panel {
   @apply border-zinc-700 bg-zinc-900/50;
 }
@@ -5925,6 +6067,34 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
 
 :root.dark .sidebar-settings-cli-link {
   @apply text-zinc-500 hover:text-zinc-200;
+}
+
+:root.dark .sidebar-settings-cli-auto-row {
+  @apply border-zinc-700;
+}
+
+:root.dark .sidebar-settings-cli-auto-label {
+  @apply text-zinc-200;
+}
+
+:root.dark .sidebar-settings-cli-auto-badge {
+  @apply bg-sky-900 text-sky-300;
+}
+
+:root.dark .sidebar-settings-cli-divider {
+  @apply border-zinc-700;
+}
+
+:root.dark .sidebar-settings-cli-intel-domain {
+  @apply text-zinc-400;
+}
+
+:root.dark .sidebar-settings-cli-intel-adapter {
+  @apply text-zinc-200;
+}
+
+:root.dark .sidebar-settings-cli-name.is-muted {
+  @apply text-zinc-500;
 }
 
 .sidebar-settings-account-section {

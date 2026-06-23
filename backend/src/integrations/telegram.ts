@@ -88,9 +88,9 @@ export class TelegramBotBridge {
     const text = msg.text.trim()
     const from = msg.from
 
-    // Reuse cached JWT for 23h; regenerate only when within 1h of expiry
+    // Reuse cached JWT until expiry (23h cache → always ≥1h validity left on a 24h token)
     const cached = this.tokenCache.get(from.id)
-    const token = (cached && cached.expiresAt - Date.now() > 60 * 60 * 1000)
+    const token = (cached && cached.expiresAt > Date.now())
       ? cached.token
       : (() => {
           const t = generateToken(`tg-${from.id}`, `${from.id}@telegram.local`, 'user')

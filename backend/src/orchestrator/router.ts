@@ -1,5 +1,8 @@
 import type { ICliAdapter } from '../types/adapter.js'
 import type { AdapterRegistry } from '../adapters/registry.js'
+import type { DomainScoreRepository } from '../storage/domainScores.js'
+import type { Domain } from './domain.js'
+import { getRoutingPrefs } from './routingPrefs.js'
 
 export class NoAdapterAvailableError extends Error {
   constructor() {
@@ -14,10 +17,14 @@ interface ScoredAdapter {
 }
 
 export class Router {
-  constructor(private readonly registry: AdapterRegistry) {}
+  constructor(
+    private readonly registry: AdapterRegistry,
+    private readonly domainScores?: DomainScoreRepository,
+  ) {}
 
-  async route(): Promise<ICliAdapter> {
-    const adapters = this.registry.list()
+  async route(domain?: Domain): Promise<ICliAdapter> {
+    const prefs = getRoutingPrefs()
+    const adapters = this.registry.list().filter(a => !prefs.disabledAdapters.has(a.id))
     if (adapters.length === 0) throw new NoAdapterAvailableError()
 
     const scored: ScoredAdapter[] = []
@@ -37,6 +44,18 @@ export class Router {
     )
 
     if (scored.length === 0) throw new NoAdapterAvailableError()
+
+    if (prefs.autoRouting && domain && domain !== 'general' && this.domainScores) {
+      const domainScored = scored.map(({ adapter, score }) => {
+        const ds = this.domainScores!.getForAdapter(adapter.id, domain)
+        const domainMultiplier = ds
+          ? ds.successRate * (1000 / Math.max(ds.avgLatencyMs, 1))
+          : 1
+        return { adapter, score: score * domainMultiplier }
+      })
+      domainScored.sort((a, b) => b.score - a.score)
+      return domainScored[0]!.adapter
+    }
 
     scored.sort((a, b) => b.score - a.score)
     return scored[0]!.adapter
