@@ -46,7 +46,7 @@ async function runOnce(): Promise<{ allPassed: boolean; results: ScenarioGroupRe
     const { adminToken, adminId, userToken, userId } = authCtx
     await runGroup('providers', () => runProviderScenarios(http))
     await runGroup('chat', () => runChatScenarios(http, mock))
-    await runGroup('routing', () => runRoutingScenarios(http))
+    await runGroup('routing', () => runRoutingScenarios(http, adminToken))
     await runGroup('threads', () => runThreadScenarios(http, adminToken, userToken))
     await runGroup('telemetry', () => runTelemetryScenarios(http, adminToken))
     // admin deletes userId at the end — must run after threads (ownership tests need userId alive)

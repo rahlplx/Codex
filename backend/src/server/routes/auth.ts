@@ -4,27 +4,34 @@ import type { Database } from 'better-sqlite3'
 import { hashPassword, verifyPassword } from '../../auth/password.js'
 import { generateToken } from '../../auth/jwt.js'
 
-// Simple in-memory rate limiter: max 5 login attempts per 15 minutes per IP
-const loginAttempts = new Map<string, { count: number; resetAt: number }>()
-const loginAttemptsCleanup = setInterval(() => {
-  const now = Date.now()
-  for (const [key, record] of loginAttempts.entries()) {
-    if (record.resetAt < now) loginAttempts.delete(key)
-  }
-}, 15 * 60 * 1000)
-loginAttemptsCleanup.unref()
+const WINDOW_MS = 15 * 60 * 1000
 
-function checkLoginRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const record = loginAttempts.get(ip)
-  if (!record || record.resetAt < now) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + 15 * 60 * 1000 })
+function makeRateLimiter(limit: number) {
+  const store = new Map<string, { count: number; resetAt: number }>()
+  const cleanup = setInterval(() => {
+    const now = Date.now()
+    for (const [key, record] of store.entries()) {
+      if (record.resetAt < now) store.delete(key)
+    }
+  }, WINDOW_MS)
+  cleanup.unref()
+  return function check(ip: string): boolean {
+    const now = Date.now()
+    const record = store.get(ip)
+    if (!record || record.resetAt < now) {
+      store.set(ip, { count: 1, resetAt: now + WINDOW_MS })
+      return true
+    }
+    if (record.count >= limit) return false
+    record.count++
     return true
   }
-  if (record.count >= 5) return false
-  record.count++
-  return true
 }
+
+// 5 login attempts / 15 min / IP
+const checkLoginRateLimit = makeRateLimiter(5)
+// 10 registration attempts / 15 min / IP (higher threshold — legitimate signups)
+const checkRegisterRateLimit = makeRateLimiter(10)
 
 export function createAuthRouter(db: Database): Router {
   const router = Router()
@@ -52,9 +59,23 @@ export function createAuthRouter(db: Database): Router {
 
   router.post('/api/auth/register', async (req, res) => {
     try {
+      const ip = req.ip ?? 'unknown'
+      if (!checkRegisterRateLimit(ip)) {
+        res.status(429).json({ error: 'Too many registration attempts. Please try again later.' })
+        return
+      }
+
       const { email, password, displayName } = req.body as { email?: string; password?: string; displayName?: string }
       if (!email || !password || !displayName) {
         res.status(400).json({ error: 'email, password, and displayName required' })
+        return
+      }
+
+      // Pre-check to avoid hashing CPU cost when email already exists.
+      // The transaction below re-checks atomically to close the TOCTOU window.
+      const preExisting = stmtFindByEmail.get(email)
+      if (preExisting) {
+        res.status(409).json({ error: 'Email already registered' })
         return
       }
 
