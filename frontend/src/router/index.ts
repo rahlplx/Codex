@@ -28,6 +28,11 @@ const router = createRouter({
       component: EmptyRouteView,
     },
     {
+      path: '/chat',
+      name: 'chat',
+      component: EmptyRouteView,
+    },
+    {
       path: '/providers',
       name: 'providers',
       component: EmptyRouteView,

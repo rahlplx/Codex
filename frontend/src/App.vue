@@ -83,6 +83,22 @@
           <button
             v-if="!isSidebarCollapsed"
             class="sidebar-skills-link"
+            :class="{ 'is-active': isChatRoute }"
+            type="button"
+            @click="router.push({ name: 'chat' }); isMobile && setSidebarCollapsed(true)"
+          >
+            <span class="sidebar-skills-link-icon" aria-hidden="true">
+              <IconTablerMessages />
+            </span>
+            <span class="sidebar-skills-link-copy">
+              <span class="sidebar-skills-link-title">{{ t('Chat') }}</span>
+              <span class="sidebar-skills-link-subtitle">{{ t('AI assistant') }}</span>
+            </span>
+          </button>
+
+          <button
+            v-if="!isSidebarCollapsed"
+            class="sidebar-skills-link"
             :class="{ 'is-active': isProvidersRoute }"
             type="button"
             @click="router.push({ name: 'providers' }); isMobile && setSidebarCollapsed(true)"
@@ -553,7 +569,7 @@
         :style="contentStyle"
       >
         <span v-if="isVirtualKeyboardOpen" class="content-keyboard-spacer" aria-hidden="true" />
-        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute || isProvidersRoute || isModelsRoute">
+        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute || isChatRoute || isProvidersRoute || isModelsRoute">
           <template #leading>
             <SidebarThreadControls
               v-if="isSidebarCollapsed || isMobile"
@@ -568,6 +584,9 @@
             </span>
             <span v-else-if="isAutomationsRoute" class="skills-route-header-icon automations-route-header-icon" aria-hidden="true">
               <IconTablerBolt />
+            </span>
+            <span v-else-if="isChatRoute" class="skills-route-header-icon" aria-hidden="true">
+              <IconTablerMessages />
             </span>
             <span v-else-if="isProvidersRoute" class="skills-route-header-icon" aria-hidden="true">
               <IconTablerServer />
@@ -649,6 +668,9 @@
           </template>
           <template v-else-if="isModelsRoute">
             <ModelCatalog />
+          </template>
+          <template v-else-if="isChatRoute">
+            <CodexChat />
           </template>
           <template v-else-if="isHomeRoute">
             <div class="content-grid content-grid-home">
@@ -1227,6 +1249,7 @@ import SidebarThreadControls from './components/sidebar/SidebarThreadControls.vu
 import IconTablerBolt from './components/icons/IconTablerBolt.vue'
 import IconTablerServer from './components/icons/IconTablerServer.vue'
 import IconTablerBrain from './components/icons/IconTablerBrain.vue'
+import IconTablerMessages from './components/icons/IconTablerMessages.vue'
 import IconTablerSearch from './components/icons/IconTablerSearch.vue'
 import IconTablerSettings from './components/icons/IconTablerSettings.vue'
 import IconTablerTerminal from './components/icons/IconTablerTerminal.vue'
@@ -1285,6 +1308,7 @@ const DirectoryHub = defineAsyncComponent(() => import('./components/content/Dir
 const AutomationsPanel = defineAsyncComponent(() => import('./components/content/AutomationsPanel.vue'))
 const ProviderDashboard = defineAsyncComponent(() => import('./components/content/ProviderDashboard.vue'))
 const ModelCatalog = defineAsyncComponent(() => import('./components/content/ModelCatalog.vue'))
+const CodexChat = defineAsyncComponent(() => import('./components/content/CodexChat.vue'))
 const { t, uiLanguage, uiLanguageOptions, setUiLanguage } = useUiLanguage()
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codex-web-local.sidebar-collapsed.v1'
@@ -1781,6 +1805,7 @@ const isSkillsRoute = computed(() => route.name === 'skills')
 const isAutomationsRoute = computed(() => route.name === 'automations')
 const isProvidersRoute = computed(() => route.name === 'providers')
 const isModelsRoute = computed(() => route.name === 'models')
+const isChatRoute = computed(() => route.name === 'chat')
 const routeAutomationId = computed(() => {
   const raw = route.query.automationId
   return typeof raw === 'string' ? raw : ''
@@ -1788,6 +1813,7 @@ const routeAutomationId = computed(() => {
 const contentTitle = computed(() => {
   if (isAutomationsRoute.value) return t('Automations')
   if (isSkillsRoute.value) return t('Skills')
+  if (isChatRoute.value) return t('Chat')
   if (isProvidersRoute.value) return t('Providers')
   if (isModelsRoute.value) return t('Models')
   if (isHomeRoute.value) return t('Start new thread')
