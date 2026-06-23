@@ -1,0 +1,27 @@
+# Telemetry JSONL files can grow large — ignore dated ones, keep .gitkeep
+logs/telemetry/*.jsonl
+logs/sessions/*.md
+
+# Keep structure markers
+!logs/telemetry/.gitkeep
+!logs/sessions/.gitkeep
+!logs/pipeline/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build artifacts (populated when tech stack is chosen)
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.env
+.env.*
