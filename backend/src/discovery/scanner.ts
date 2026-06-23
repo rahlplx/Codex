@@ -9,6 +9,7 @@ export interface DiscoveredModel extends Model {
 export class ModelDiscoveryScanner {
   private catalog: DiscoveredModel[] = []
   private intervalHandle: ReturnType<typeof setInterval> | null = null
+  private isScanning = false
 
   constructor(
     private readonly registry: AdapterRegistry,
@@ -16,6 +17,16 @@ export class ModelDiscoveryScanner {
   ) {}
 
   async scan(): Promise<DiscoveredModel[]> {
+    if (this.isScanning) return this.catalog
+    this.isScanning = true
+    try {
+      return await this.doScan()
+    } finally {
+      this.isScanning = false
+    }
+  }
+
+  private async doScan(): Promise<DiscoveredModel[]> {
     const adapters = this.registry.list()
     const results: DiscoveredModel[] = []
     const now = new Date()

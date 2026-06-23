@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { KiloCodeAdapter } from '../../../backend/src/adapters/kilocode.js'
 
 describe('KiloCodeAdapter — static identity', () => {
@@ -55,6 +55,10 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     await adapter.initialize({ apiKey: 'test-key' })
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('POSTs to the correct endpoint', async () => {
     const mockResponse = {
       id: 'kilo-123',
@@ -69,8 +73,6 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     await adapter.chatCompletion({ messages: [{ role: 'user', content: 'Hi' }] })
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call[0]).toContain('/chat/completions')
-
-    vi.unstubAllGlobals()
   })
 
   it('uses kilo-coder-latest as default model', async () => {
@@ -88,8 +90,6 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     const body = JSON.parse(call[1].body)
     expect(body.model).toBe('kilo-coder-latest')
-
-    vi.unstubAllGlobals()
   })
 
   it('sends Authorization header when API key configured', async () => {
@@ -106,8 +106,6 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     await adapter.chatCompletion({ messages: [{ role: 'user', content: 'Hi' }] })
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call[1].headers['Authorization']).toBe('Bearer test-key')
-
-    vi.unstubAllGlobals()
   })
 
   it('parses response into ChatCompletionResponse shape', async () => {
@@ -127,8 +125,6 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     expect(res.choices[0]?.message.content).toBe('World')
     expect(res.usage.totalTokens).toBe(15)
     expect(res.provider).toBe('kilocode')
-
-    vi.unstubAllGlobals()
   })
 
   it('throws on HTTP error', async () => {
@@ -141,7 +137,5 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     await expect(adapter.chatCompletion({
       messages: [{ role: 'user', content: 'Hi' }],
     })).rejects.toThrow('500')
-
-    vi.unstubAllGlobals()
   })
 })

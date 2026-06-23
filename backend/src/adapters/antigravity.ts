@@ -38,7 +38,7 @@ export class AntigravityAdapter extends AdapterBase {
   readonly name = 'Antigravity (Google Gemini)'
   readonly tier = 'freemium' as const
   readonly supportsStreaming = true
-  readonly supportsToolUse = true
+  readonly supportsToolUse = false
 
   private get apiKey(): string | undefined {
     return this.config['apiKey'] as string | undefined
@@ -73,6 +73,7 @@ export class AntigravityAdapter extends AdapterBase {
   }
 
   async chatCompletion(req: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+    if (!this.apiKey) throw new Error('API key is not configured for AntigravityAdapter')
     const model = req.model ?? 'gemini-2.5-flash-preview'
     const body = this.buildGeminiBody(req)
     const result = await this.fetchJson<GeminiResponse>(
@@ -87,6 +88,7 @@ export class AntigravityAdapter extends AdapterBase {
   }
 
   async *chatCompletionStream(req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
+    if (!this.apiKey) throw new Error('API key is not configured for AntigravityAdapter')
     const model = req.model ?? 'gemini-2.5-flash-preview'
     const body = this.buildGeminiBody(req)
     const res = await fetch(
@@ -130,6 +132,7 @@ export class AntigravityAdapter extends AdapterBase {
         }
       }
     } finally {
+      try { await reader.cancel() } catch { /* ignore */ }
       reader.releaseLock()
     }
   }

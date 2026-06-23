@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AntigravityAdapter } from '../../../backend/src/adapters/antigravity.js'
 
 describe('AntigravityAdapter — static identity', () => {
@@ -8,7 +8,7 @@ describe('AntigravityAdapter — static identity', () => {
   it('has correct name', () => expect(adapter.name).toContain('Gemini'))
   it('is freemium tier', () => expect(adapter.tier).toBe('freemium'))
   it('supports streaming', () => expect(adapter.supportsStreaming).toBe(true))
-  it('supports tool use', () => expect(adapter.supportsToolUse).toBe(true))
+  it('does not support tool use', () => expect(adapter.supportsToolUse).toBe(false))
 })
 
 describe('AntigravityAdapter — getQuota', () => {
@@ -71,6 +71,10 @@ describe('AntigravityAdapter — chatCompletion', () => {
     await adapter.initialize({ apiKey: 'test-key' })
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('POSTs to the correct endpoint', async () => {
     const mockResponse = {
       candidates: [{ content: { parts: [{ text: 'Hello' }] }, finishReason: 'STOP' }],
@@ -85,8 +89,6 @@ describe('AntigravityAdapter — chatCompletion', () => {
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call[0]).toContain('generateContent')
     expect(call[0]).toContain('key=test-key')
-
-    vi.unstubAllGlobals()
   })
 
   it('uses gemini-2.5-flash-preview as default model', async () => {
@@ -102,8 +104,6 @@ describe('AntigravityAdapter — chatCompletion', () => {
     await adapter.chatCompletion({ messages: [{ role: 'user', content: 'Hi' }] })
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call[0]).toContain('gemini-2.5-flash-preview')
-
-    vi.unstubAllGlobals()
   })
 
   it('parses response into ChatCompletionResponse shape', async () => {
@@ -121,8 +121,6 @@ describe('AntigravityAdapter — chatCompletion', () => {
     expect(res.choices[0]?.finishReason).toBe('stop')
     expect(res.usage.totalTokens).toBe(15)
     expect(res.provider).toBe('antigravity')
-
-    vi.unstubAllGlobals()
   })
 
   it('maps system messages to systemInstruction', async () => {
@@ -146,7 +144,5 @@ describe('AntigravityAdapter — chatCompletion', () => {
     expect(body.systemInstruction).toBeDefined()
     expect(body.systemInstruction.parts[0].text).toBe('You are helpful')
     expect(body.contents).toHaveLength(1)
-
-    vi.unstubAllGlobals()
   })
 })

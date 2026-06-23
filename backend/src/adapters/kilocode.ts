@@ -113,6 +113,7 @@ export class KiloCodeAdapter extends AdapterBase {
         max_tokens: req.maxTokens,
         stream: true,
       }),
+      signal: AbortSignal.timeout(this.timeout()),
     })
     if (!res.ok || !res.body) throw new Error(`KiloCode stream error: HTTP ${res.status}`)
 
@@ -128,7 +129,8 @@ export class KiloCodeAdapter extends AdapterBase {
         buffer = lines.pop() ?? ''
         for (let line of lines) {
           if (line.endsWith('\r')) line = line.slice(0, -1)
-          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
+          if (line === 'data: [DONE]') return
+          if (!line.startsWith('data: ')) continue
           try { yield JSON.parse(line.slice(6)) as ChatCompletionChunk } catch { /* skip */ }
         }
       }
