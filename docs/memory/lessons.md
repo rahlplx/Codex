@@ -23,3 +23,19 @@ Append-only log of mistakes, near-misses, and how they were resolved.
 ## 2026-06-23 — Empty directories not tracked by git without .gitkeep
 
 **Lesson:** Git does not track empty directories. All directories needed a `.gitkeep` placeholder or a real file to appear in the repo after clone. All `logs/` and `tests/` subdirs have `.gitkeep` files. Future agents: when creating a new directory, always add a `.gitkeep` or initial README immediately.
+
+## 2026-06-23 — Self-hosted runner requires RUNNER_ALLOW_RUNASROOT=1 on root containers
+
+**Mistake:** GitHub Actions runner exits with "Must not run with sudo" when the OS user is root. In ephemeral cloud containers the default user is root.
+
+**Resolution:** `export RUNNER_ALLOW_RUNASROOT=1` before `./config.sh` and `./run.sh`. Document this in setup-runner.sh comments.
+
+## 2026-06-23 — runner_id: 0 looks identical to billing-gated allocation failure
+
+**Lesson:** When a self-hosted job is queued but no runner is online, check runs show `runner_id: 0, conclusion: null` — same as ubuntu-latest quota exhaustion. Always verify runner status in the GitHub UI (Settings → Actions → Runners) before assuming a billing issue.
+
+## 2026-06-23 — Harness assertions for gitignored runtime files always fail in CI
+
+**Mistake:** Loop 6 asserted existence of `logs/sessions/2026-06-23-full-audit.md` and `logs/telemetry/2026-06-23.jsonl`. These are gitignored runtime files that don't exist in a fresh clone.
+
+**Resolution:** Replace existence checks with write-capability checks: create a hidden temp file (`.harness-test.*`), verify it's readable, then delete it. This tests the same property (directory is writable) without requiring pre-existing runtime state.

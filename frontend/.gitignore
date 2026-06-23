@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-cli/
+output/
+.playwright-cli/
+test-results/
+*.tsbuildinfo
+
+.codex/
+.env.local
+
+package.json
+.omx/
