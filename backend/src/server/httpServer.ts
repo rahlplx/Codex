@@ -2,7 +2,7 @@ import express from 'express'
 import type { Request, Response, NextFunction } from 'express'
 import type { Database } from 'better-sqlite3'
 import { AdapterRegistry } from '../adapters/registry.js'
-import { healthRouter } from './routes/health.js'
+import { createHealthRouter } from './routes/health.js'
 import { createProvidersRouter } from './routes/providers.js'
 import { createModelsRouter } from './routes/models.js'
 import { createChatRouter } from './routes/chat.js'
@@ -15,9 +15,13 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
   .split(',')
   .map(o => o.trim())
 
+const WILDCARD = ALLOWED_ORIGINS.includes('*')
+
 function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const origin = req.headers.origin
-  if (origin && (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*'))) {
+  if (WILDCARD) {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+  } else if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Vary', 'Origin')
   }
@@ -38,7 +42,7 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   app.use(corsMiddleware)
   app.use(express.json({ limit: '1mb' }))
 
-  app.use(healthRouter)
+  app.use(createHealthRouter(db))
   app.use(createProvidersRouter(reg))
   app.use(createModelsRouter(reg))
   app.use(createChatRouter(reg))

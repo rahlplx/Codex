@@ -54,7 +54,8 @@ export class AntigravityAdapter extends AdapterBase {
       return { healthy: false, latencyMs: 0, score: 0, error: 'No API key configured' }
     }
     try {
-      const res = await fetch(`${this.url}/models?key=${this.apiKey}`, {
+      const res = await fetch(`${this.url}/models`, {
+        headers: { 'x-goog-api-key': this.apiKey! },
         signal: AbortSignal.timeout(5000),
       })
       return { healthy: res.ok, latencyMs: Date.now() - start, score: res.ok ? 90 : 0 }
@@ -77,10 +78,10 @@ export class AntigravityAdapter extends AdapterBase {
     const model = req.model ?? 'gemini-2.5-flash-preview'
     const body = this.buildGeminiBody(req)
     const result = await this.fetchJson<GeminiResponse>(
-      `${this.url}/models/${model}:generateContent?key=${this.apiKey}`,
+      `${this.url}/models/${model}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey! },
         body: JSON.stringify(body),
       }
     )
@@ -92,10 +93,10 @@ export class AntigravityAdapter extends AdapterBase {
     const model = req.model ?? 'gemini-2.5-flash-preview'
     const body = this.buildGeminiBody(req)
     const res = await fetch(
-      `${this.url}/models/${model}:streamGenerateContent?alt=sse&key=${this.apiKey}`,
+      `${this.url}/models/${model}:streamGenerateContent?alt=sse`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey! },
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(this.timeout()),
       }

@@ -18,40 +18,46 @@ const config = loadConfig()
 
 const registry = new AdapterRegistry()
 
+// Instantiate adapters before initializing so all are available to Promise.all
 const zen = new OpenCodeZenAdapter()
-zen.initialize({ baseUrl: config.zenBaseUrl, apiKey: config.zenApiKey }).catch(console.error)
-registry.register(zen)
-
 const nemotron = new NemotronAdapter()
-nemotron.initialize({}).catch(console.error)
-registry.register(nemotron)
-
 const openrouter = new OpenRouterFreeAdapter()
-openrouter.initialize({ apiKey: config.providers['openrouter-free']?.apiKey }).catch(console.error)
-registry.register(openrouter)
-
 const antigravity = new AntigravityAdapter()
-antigravity.initialize({ apiKey: config.providers['antigravity']?.apiKey }).catch(console.error)
-registry.register(antigravity)
-
 const kilocode = new KiloCodeAdapter()
-kilocode.initialize({ apiKey: config.providers['kilocode']?.apiKey }).catch(console.error)
-registry.register(kilocode)
-
 const nineRouter = new NineRouterAdapter()
-nineRouter.initialize({ baseUrl: config.providers['nine-router']?.baseUrl }).catch(console.error)
-registry.register(nineRouter)
-
 const cliRelay = new CliRelayAdapter()
-cliRelay.initialize({ baseUrl: config.providers['cli-relay']?.baseUrl }).catch(console.error)
-registry.register(cliRelay)
-
 const cliProxyApi = new CliProxyApiAdapter()
-cliProxyApi.initialize({ baseUrl: config.providers['cli-proxy-api']?.baseUrl }).catch(console.error)
-registry.register(cliProxyApi)
-
 const aiClient2Api = new AiClient2ApiAdapter()
-aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }).catch(console.error)
+
+// Initialize all adapters in parallel, then register — prevents routing to
+// adapters whose config hasn't been applied yet.
+const inits = await Promise.allSettled([
+  zen.initialize({ baseUrl: config.zenBaseUrl, apiKey: config.zenApiKey }),
+  nemotron.initialize({}),
+  openrouter.initialize({ apiKey: config.providers['openrouter-free']?.apiKey }),
+  antigravity.initialize({ apiKey: config.providers['antigravity']?.apiKey }),
+  kilocode.initialize({ apiKey: config.providers['kilocode']?.apiKey }),
+  nineRouter.initialize({ baseUrl: config.providers['nine-router']?.baseUrl }),
+  cliRelay.initialize({ baseUrl: config.providers['cli-relay']?.baseUrl }),
+  cliProxyApi.initialize({ baseUrl: config.providers['cli-proxy-api']?.baseUrl }),
+  aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }),
+])
+
+const adapterNames = ['zen', 'nemotron', 'openrouter', 'antigravity', 'kilocode', 'nine-router', 'cli-relay', 'cli-proxy-api', 'ai-client2api']
+inits.forEach((result, i) => {
+  if (result.status === 'rejected') {
+    console.error(`[${adapterNames[i]}] initialization failed:`, result.reason)
+  }
+})
+
+registry.register(zen)
+registry.register(nemotron)
+registry.register(openrouter)
+registry.register(antigravity)
+registry.register(kilocode)
+registry.register(nineRouter)
+registry.register(cliRelay)
+registry.register(cliProxyApi)
 registry.register(aiClient2Api)
 
 const db = openDatabase(config.databasePath)
@@ -67,7 +73,25 @@ if (telegramBridge) {
 
 const app = createApp(registry, db)
 
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
   console.log(`Codex backend listening on :${config.port}`)
   console.log(`Registered adapters: ${registry.list().map((a: { id: string }) => a.id).join(', ')}`)
 })
+
+function shutdown() {
+  console.log('Shutting down gracefully...')
+  const forceExit = setTimeout(() => {
+    console.error('[shutdown] Force exiting after 10s — likely open SSE connections')
+    process.exit(1)
+  }, 10_000)
+  forceExit.unref()
+  server.close(() => {
+    scanner.stop()
+    telegramBridge?.stop()
+    db.close()
+    process.exit(0)
+  })
+}
+
+process.on('SIGTERM', shutdown)
+process.on('SIGINT', shutdown)
