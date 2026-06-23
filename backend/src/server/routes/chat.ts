@@ -2,12 +2,13 @@ import { Router } from 'express'
 import type { AdapterRegistry } from '../../adapters/registry.js'
 import { Router as OrchestratorRouter, NoAdapterAvailableError } from '../../orchestrator/router.js'
 import type { ChatCompletionRequest } from '../../types/adapter.js'
+import { authGuard } from '../../auth/middleware.js'
 
 export function createChatRouter(registry: AdapterRegistry): Router {
   const router = Router()
   const orchestrator = new OrchestratorRouter(registry)
 
-  router.post('/api/chat/completions', async (req, res) => {
+  router.post('/api/chat/completions', authGuard, async (req, res) => {
     const { messages, model, stream, temperature, max_tokens } = req.body as Record<string, unknown>
 
     if (!Array.isArray(messages) || messages.length === 0) {

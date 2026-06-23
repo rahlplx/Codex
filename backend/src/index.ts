@@ -43,22 +43,21 @@ const inits = await Promise.allSettled([
   aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }),
 ])
 
-const adapterNames = ['zen', 'nemotron', 'openrouter', 'antigravity', 'kilocode', 'nine-router', 'cli-relay', 'cli-proxy-api', 'ai-client2api']
-inits.forEach((result, i) => {
-  if (result.status === 'rejected') {
-    console.error(`[${adapterNames[i]}] initialization failed:`, result.reason)
-  }
-})
+const adapters = [zen, nemotron, openrouter, antigravity, kilocode, nineRouter, cliRelay, cliProxyApi, aiClient2Api]
+const adapterIds = ['opencode-zen', 'nemotron', 'openrouter-free', 'antigravity', 'kilocode', 'nine-router', 'cli-relay', 'cli-proxy-api', 'ai-client2api']
 
-registry.register(zen)
-registry.register(nemotron)
-registry.register(openrouter)
-registry.register(antigravity)
-registry.register(kilocode)
-registry.register(nineRouter)
-registry.register(cliRelay)
-registry.register(cliProxyApi)
-registry.register(aiClient2Api)
+inits.forEach((result, i) => {
+  const id = adapterIds[i]!
+  if (result.status === 'rejected') {
+    console.error(`[${id}] initialization failed:`, result.reason)
+    return
+  }
+  if (config.providers[id]?.enabled === false) {
+    console.log(`[${id}] disabled by config — skipping`)
+    return
+  }
+  registry.register(adapters[i]!)
+})
 
 const db = openDatabase(config.databasePath)
 
@@ -85,9 +84,10 @@ function shutdown() {
     process.exit(1)
   }, 10_000)
   forceExit.unref()
-  server.close(() => {
+  server.close(async () => {
     scanner.stop()
     telegramBridge?.stop()
+    await Promise.allSettled(registry.list().map(a => a.shutdown()))
     db.close()
     process.exit(0)
   })
