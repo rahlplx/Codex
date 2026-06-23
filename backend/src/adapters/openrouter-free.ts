@@ -50,7 +50,7 @@ export class OpenRouterFreeAdapter extends AdapterBase {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`
 
-    return this.fetchJson(`${this.baseApiUrl}/chat/completions`, {
+    const raw = await this.fetchJson<Record<string, unknown>>(`${this.baseApiUrl}/chat/completions`, {
       method: 'POST',
       headers,
       body: JSON.stringify({
@@ -61,6 +61,25 @@ export class OpenRouterFreeAdapter extends AdapterBase {
         stream: false,
       }),
     })
+
+    const choices = Array.isArray(raw?.['choices']) ? raw['choices'] as Array<Record<string, unknown>> : []
+    const usage = (raw?.['usage'] ?? {}) as Record<string, unknown>
+
+    return {
+      id: (raw?.['id'] as string) ?? `${this.id}-${Date.now()}`,
+      choices: choices.map((c, i) => ({
+        index: i,
+        message: { role: 'assistant' as const, content: ((c['message'] as Record<string, unknown>)?.['content'] as string) ?? '' },
+        finishReason: (c['finish_reason'] as ChatCompletionResponse['choices'][number]['finishReason']) ?? null,
+      })),
+      usage: {
+        promptTokens: (usage['prompt_tokens'] as number) ?? 0,
+        completionTokens: (usage['completion_tokens'] as number) ?? 0,
+        totalTokens: (usage['total_tokens'] as number) ?? 0,
+      },
+      model: raw?.['model'] as string | undefined,
+      provider: this.id,
+    }
   }
 
   async *chatCompletionStream(req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
@@ -78,6 +97,7 @@ export class OpenRouterFreeAdapter extends AdapterBase {
         max_tokens: req.maxTokens,
         stream: true,
       }),
+      signal: AbortSignal.timeout(this.timeout()),
     })
     if (!res.ok || !res.body) throw new Error(`OpenRouter stream error: HTTP ${res.status}`)
 

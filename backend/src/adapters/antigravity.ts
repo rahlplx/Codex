@@ -12,7 +12,7 @@ const KNOWN_MODELS: Model[] = [
     name: 'Gemini 2.5 Flash Preview',
     contextWindow: 1_048_576,
     supportsStreaming: true,
-    supportsToolUse: true,
+    supportsToolUse: false,
     supportsReasoning: true,
   },
   {
@@ -20,7 +20,7 @@ const KNOWN_MODELS: Model[] = [
     name: 'Gemini 2.5 Pro Preview',
     contextWindow: 1_048_576,
     supportsStreaming: true,
-    supportsToolUse: true,
+    supportsToolUse: false,
     supportsReasoning: true,
   },
   {
@@ -28,7 +28,7 @@ const KNOWN_MODELS: Model[] = [
     name: 'Gemini 2.0 Flash',
     contextWindow: 1_048_576,
     supportsStreaming: true,
-    supportsToolUse: true,
+    supportsToolUse: false,
     supportsReasoning: false,
   },
 ]
@@ -73,9 +73,14 @@ export class AntigravityAdapter extends AdapterBase {
     return [...KNOWN_MODELS]
   }
 
+  private static sanitizeModel(model: string): string {
+    if (!/^[a-zA-Z0-9._-]+$/.test(model)) throw new Error(`Invalid model name: ${model}`)
+    return model
+  }
+
   async chatCompletion(req: ChatCompletionRequest): Promise<ChatCompletionResponse> {
     if (!this.apiKey) throw new Error('API key is not configured for AntigravityAdapter')
-    const model = req.model ?? 'gemini-2.5-flash-preview'
+    const model = AntigravityAdapter.sanitizeModel(req.model ?? 'gemini-2.5-flash-preview')
     const body = this.buildGeminiBody(req)
     const result = await this.fetchJson<GeminiResponse>(
       `${this.url}/models/${model}:generateContent`,
@@ -90,7 +95,7 @@ export class AntigravityAdapter extends AdapterBase {
 
   async *chatCompletionStream(req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
     if (!this.apiKey) throw new Error('API key is not configured for AntigravityAdapter')
-    const model = req.model ?? 'gemini-2.5-flash-preview'
+    const model = AntigravityAdapter.sanitizeModel(req.model ?? 'gemini-2.5-flash-preview')
     const body = this.buildGeminiBody(req)
     const res = await fetch(
       `${this.url}/models/${model}:streamGenerateContent?alt=sse`,

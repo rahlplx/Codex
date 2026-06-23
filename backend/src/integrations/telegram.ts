@@ -16,11 +16,15 @@ interface TelegramBotConfig {
   backendUrl: string
 }
 
+const BACKEND_TIMEOUT_MS = 30_000
+const TOKEN_TTL_MS = 23 * 60 * 60 * 1000
+
 export class TelegramBotBridge {
   private offset = 0
   private polling = false
   private pollTimer: ReturnType<typeof setTimeout> | null = null
   private chatThreadMap = new Map<number, string>()
+  private tokenCache = new Map<number, { token: string; expiresAt: number }>()
 
   constructor(private readonly config: TelegramBotConfig) {}
 
@@ -68,7 +72,9 @@ export class TelegramBotBridge {
 
     for (const update of data.result) {
       this.offset = update.update_id + 1
-      await this.handleUpdate(update).catch(() => {})
+      await this.handleUpdate(update).catch(err => {
+        console.error('[TelegramBridge] handleUpdate error:', err)
+      })
     }
     return data.result
   }
@@ -86,8 +92,7 @@ export class TelegramBotBridge {
     const text = msg.text.trim()
     const from = msg.from
 
-    // Generate a per-user JWT so backend API calls pass authGuard
-    const token = generateToken(`tg-${from.id}`, `${from.id}@telegram.local`, 'user')
+    const token = this.getOrCreateToken(from.id)
     const authHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -137,10 +142,12 @@ export class TelegramBotBridge {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({ role: 'user', content }),
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
       })
 
       const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
         headers: { 'Authorization': `Bearer ${token}` },
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
       })
       let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
       if (historyRes.ok) {
@@ -152,6 +159,7 @@ export class TelegramBotBridge {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({ messages, stream: false }),
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
       })
       if (!completionRes.ok) {
         await this.sendMessage(msg.chat.id, 'AI request failed.')
@@ -164,6 +172,7 @@ export class TelegramBotBridge {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({ role: 'assistant', content: reply }),
+        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
       })
 
       await this.sendMessage(msg.chat.id, reply)
@@ -173,11 +182,21 @@ export class TelegramBotBridge {
     await this.sendMessage(msg.chat.id, 'Unknown command. Use /help to see available commands.')
   }
 
+  private getOrCreateToken(userId: number): string {
+    const now = Date.now()
+    const cached = this.tokenCache.get(userId)
+    if (cached && now < cached.expiresAt) return cached.token
+    const token = generateToken(`tg-${userId}`, `${userId}@telegram.local`, 'user')
+    this.tokenCache.set(userId, { token, expiresAt: now + TOKEN_TTL_MS })
+    return token
+  }
+
   private async createThread(chatId: number, from: { id: number; first_name?: string }, token: string): Promise<{ id: string; title: string } | null> {
     const threadRes = await fetch(`${this.config.backendUrl}/api/threads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
       body: JSON.stringify({ title: `Telegram ${from.first_name ?? from.id}` }),
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
     if (!threadRes.ok) {
       await this.sendMessage(chatId, 'Failed to create thread.')

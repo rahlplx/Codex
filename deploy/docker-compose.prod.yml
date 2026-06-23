@@ -27,7 +27,7 @@ services:
     environment:
       - PORT=3001
       - DATABASE_PATH=/data/codex.db
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET must be set. Run: export JWT_SECRET=$(openssl rand -hex 32)}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
       - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-}
     volumes:

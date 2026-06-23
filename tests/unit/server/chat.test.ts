@@ -2,10 +2,14 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Server } from 'node:http'
 import { createApp } from '../../../backend/src/server/httpServer'
 import { AdapterRegistry } from '../../../backend/src/adapters/registry'
+import { generateToken } from '../../../backend/src/auth/jwt'
 import type {
   ICliAdapter, AdapterConfig, HealthStatus, QuotaStatus, Model,
   ChatCompletionRequest, ChatCompletionResponse, ChatCompletionChunk,
 } from '../../../backend/src/types/adapter'
+
+const TEST_TOKEN = generateToken('test-user-1', 'test@example.com', 'user')
+const AUTH_HEADER = { 'Authorization': `Bearer ${TEST_TOKEN}` }
 
 // ── mock adapter factory ──────────────────────────────────────────────────────
 
@@ -90,7 +94,7 @@ describe('POST /api/chat/completions — validation', () => {
   it('returns 400 when messages field is missing', async () => {
     const res = await fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify({ model: 'big-pickle' }),
     })
     expect(res.status).toBe(400)
@@ -101,7 +105,7 @@ describe('POST /api/chat/completions — validation', () => {
   it('returns 400 when messages is not an array', async () => {
     const res = await fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify({ messages: 'hello' }),
     })
     expect(res.status).toBe(400)
@@ -110,7 +114,7 @@ describe('POST /api/chat/completions — validation', () => {
   it('returns 400 when messages is an empty array', async () => {
     const res = await fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify({ messages: [] }),
     })
     expect(res.status).toBe(400)
@@ -133,7 +137,7 @@ describe('POST /api/chat/completions — non-streaming', () => {
   async function post(body: Record<string, unknown>) {
     return fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify(body),
     })
   }
@@ -187,7 +191,7 @@ describe('POST /api/chat/completions — non-streaming', () => {
     try {
       await fetch(`${u2}/api/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
         body: JSON.stringify({ model: 'deepseek-v4-flash-free', messages: [{ role: 'user', content: 'hi' }] }),
       })
       expect(capturedModel).toBe('deepseek-v4-flash-free')
@@ -209,7 +213,7 @@ describe('POST /api/chat/completions — non-streaming', () => {
     try {
       await fetch(`${u2}/api/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
         body: JSON.stringify({ temperature: 0.3, messages: [{ role: 'user', content: 'hi' }] }),
       })
       expect(capturedTemp).toBe(0.3)
@@ -227,7 +231,7 @@ describe('POST /api/chat/completions — non-streaming', () => {
     try {
       const res = await fetch(`${u2}/api/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
         body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
       })
       expect(res.status).toBe(500)
@@ -254,7 +258,7 @@ describe('POST /api/chat/completions — no adapter', () => {
   it('returns 503 when no adapter is available', async () => {
     const res = await fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
     })
     expect(res.status).toBe(503)
@@ -279,7 +283,7 @@ describe('POST /api/chat/completions — streaming', () => {
   async function stream(body: Record<string, unknown>) {
     return fetch(`${baseUrl}/api/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
       body: JSON.stringify(body),
     })
   }

@@ -45,13 +45,17 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   app.use(createHealthRouter(db))
   app.use(createProvidersRouter(reg))
   app.use(createModelsRouter(reg))
-  app.use(createChatRouter(reg))
+  app.use(createChatRouter(reg, db))
   if (db) {
     app.use(createThreadsRouter(db))
     app.use(createAuthRouter(db))
     app.use(createAdminRouter(db))
     app.use(createTelemetryRouter(db))
   }
+
+  app.use((_err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    res.status(500).json({ error: 'Internal server error' })
+  })
 
   return app
 }

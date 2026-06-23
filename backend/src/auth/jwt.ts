@@ -39,10 +39,16 @@ export function verifyToken(token: string): JwtPayload {
     throw new Error('Invalid signature')
   }
 
+  const headerJson = JSON.parse(Buffer.from(header!, 'base64url').toString())
+  if (headerJson?.alg !== 'HS256') throw new Error('Unsupported algorithm')
+
   const decoded = JSON.parse(Buffer.from(payload!, 'base64url').toString())
   if (!decoded || typeof decoded !== 'object' || typeof decoded.exp !== 'number') {
     throw new Error('Invalid token payload')
   }
+  if (typeof decoded.sub !== 'string' || !decoded.sub) throw new Error('Invalid sub claim')
+  if (typeof decoded.email !== 'string' || !decoded.email) throw new Error('Invalid email claim')
+  if (decoded.role !== 'admin' && decoded.role !== 'user') throw new Error('Invalid role claim')
   if (decoded.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired')
   return decoded as JwtPayload
 }

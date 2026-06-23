@@ -4,6 +4,10 @@ import express from 'express'
 import { AdapterRegistry } from '../../../backend/src/adapters/registry.js'
 import { createModelsRouter } from '../../../backend/src/server/routes/models.js'
 import type { ICliAdapter } from '../../../backend/src/types/adapter.js'
+import { generateToken } from '../../../backend/src/auth/jwt.js'
+
+const TEST_TOKEN = generateToken('test-user-1', 'test@example.com', 'user')
+const AUTH_HEADER = { 'Authorization': `Bearer ${TEST_TOKEN}` }
 
 function makeAdapter(id: string, models: Array<{ id: string; name: string }>): ICliAdapter {
   return {
@@ -44,7 +48,7 @@ describe('Models API', () => {
 
   it('returns empty models array when no adapters registered', async () => {
     app = buildApp(registry)
-    const res = await request(app).get('/api/models')
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.models).toEqual([])
     expect(res.body.ts).toBeDefined()
@@ -55,7 +59,7 @@ describe('Models API', () => {
     registry.register(makeAdapter('beta', [{ id: 'model-b', name: 'Model B' }, { id: 'model-c', name: 'Model C' }]))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/models')
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.models).toHaveLength(3)
     expect(res.body.models[0].provider).toBe('alpha')
@@ -66,7 +70,7 @@ describe('Models API', () => {
     registry.register(makeAdapter('test-provider', [{ id: 'test-model', name: 'Test' }]))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/models')
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
     expect(res.body.models[0].provider).toBe('test-provider')
     expect(res.body.models[0].id).toBe('test-model')
   })
@@ -78,7 +82,7 @@ describe('Models API', () => {
     registry.register(makeAdapter('working', [{ id: 'ok-model', name: 'OK' }]))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/models')
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.models).toHaveLength(1)
     expect(res.body.models[0].id).toBe('ok-model')

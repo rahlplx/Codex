@@ -1,10 +1,11 @@
 import { Router } from 'express'
 import type { AdapterRegistry } from '../../adapters/registry.js'
+import { authGuard } from '../../auth/middleware.js'
 
 export function createModelsRouter(registry: AdapterRegistry): Router {
   const router = Router()
 
-  router.get('/api/models', async (_req, res) => {
+  router.get('/api/models', authGuard, async (_req, res) => {
     const adapters = registry.list()
     const modelSets = await Promise.all(
       adapters.map(async adapter => {

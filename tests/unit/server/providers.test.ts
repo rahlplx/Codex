@@ -4,6 +4,10 @@ import express from 'express'
 import { AdapterRegistry } from '../../../backend/src/adapters/registry.js'
 import { createProvidersRouter } from '../../../backend/src/server/routes/providers.js'
 import type { ICliAdapter } from '../../../backend/src/types/adapter.js'
+import { generateToken } from '../../../backend/src/auth/jwt.js'
+
+const TEST_TOKEN = generateToken('test-user-1', 'test@example.com', 'user')
+const AUTH_HEADER = { 'Authorization': `Bearer ${TEST_TOKEN}` }
 
 function makeAdapter(id: string, overrides?: Partial<ICliAdapter>): ICliAdapter {
   return {
@@ -46,7 +50,7 @@ describe('Providers API', () => {
 
   it('returns empty providers array when none registered', async () => {
     app = buildApp(registry)
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.providers).toEqual([])
     expect(res.body.ts).toBeDefined()
@@ -57,7 +61,7 @@ describe('Providers API', () => {
     registry.register(makeAdapter('beta'))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.providers).toHaveLength(2)
     expect(res.body.providers[0].id).toBe('alpha')
@@ -71,7 +75,7 @@ describe('Providers API', () => {
     registry.register(makeAdapter('test', { tier: 'premium' as any, name: 'Test Provider' }))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.body.providers[0].name).toBe('Test Provider')
     expect(res.body.providers[0].tier).toBe('premium')
   })
@@ -82,7 +86,7 @@ describe('Providers API', () => {
     }))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.providers[0].health.healthy).toBe(false)
     expect(res.body.providers[0].health.error).toContain('timeout')
@@ -94,7 +98,7 @@ describe('Providers API', () => {
     }))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.providers[0].quota.unlimited).toBe(false)
     expect(res.body.providers[0].quota.remaining).toBeNull()
@@ -106,7 +110,7 @@ describe('Providers API', () => {
     }))
     app = buildApp(registry)
 
-    const res = await request(app).get('/api/providers')
+    const res = await request(app).get('/api/providers').set(AUTH_HEADER)
     expect(res.status).toBe(200)
     expect(res.body.providers[0].models).toEqual([])
   })

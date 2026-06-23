@@ -40,10 +40,10 @@ describe('AntigravityAdapter — supportedModels', () => {
     expect(models.some(m => m.id === 'gemini-2.5-flash-preview')).toBe(true)
   })
 
-  it('gemini models support tool use', async () => {
+  it('gemini models report tool use as false (adapter does not implement tool calls)', async () => {
     const models = await adapter.supportedModels()
     const flash = models.find(m => m.id === 'gemini-2.5-flash-preview')
-    expect(flash?.supportsToolUse).toBe(true)
+    expect(flash?.supportsToolUse).toBe(false)
   })
 
   it('all models have positive contextWindow', async () => {

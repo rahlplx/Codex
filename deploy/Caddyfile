@@ -3,6 +3,19 @@
 }
 
 {$CODEX_DOMAIN:localhost} {
+	# SSE streaming for chat completions (must be before generic /api/*)
+	handle /api/chat/completions {
+		reverse_proxy backend:3001 {
+			flush_interval -1
+			header_up Connection {>Connection}
+			header_up Upgrade {>Upgrade}
+			transport http {
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+
 	# API requests → backend
 	handle /api/* {
 		reverse_proxy backend:3001 {
@@ -11,15 +24,6 @@
 				read_timeout 120s
 				write_timeout 120s
 			}
-		}
-	}
-
-	# WebSocket upgrade for SSE streaming
-	handle /api/chat/completions {
-		reverse_proxy backend:3001 {
-			flush_interval -1
-			header_up Connection {>Connection}
-			header_up Upgrade {>Upgrade}
 		}
 	}
 
