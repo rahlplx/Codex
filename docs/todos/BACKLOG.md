@@ -23,10 +23,10 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | P2 | Docker Compose setup (frontend + backend + optional routers) | DevOps | Deploy |
 | P2 | 9Router sidecar integration | Engineer | Backend |
 | P2 | CliRelay sidecar integration | Engineer | Backend |
+| P1 | Fix `needs['unit-tests'].result` bracket notation in ci.yml once runner is live | Engineer | — |
 | P2 | Telegram bot bridge (port from codex-mobile) | Engineer | Feature |
 | P3 | Caddy/Traefik reverse proxy setup | DevOps | Deploy |
 | P3 | CLIProxyAPI + AIClient2API sidecar integration | Engineer | Backend |
-| P1 | Fix `needs['unit-tests'].result` bracket notation in ci.yml once runner is live | Engineer | — |
 
 ## Done
 

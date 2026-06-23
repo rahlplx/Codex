@@ -162,6 +162,7 @@ assert_dir "knowledge/architecture"
 assert_dir "knowledge/design"
 assert_nonempty "knowledge/providers/index.md"
 assert_nonempty "knowledge/routers/index.md"
+assert_nonempty "knowledge/models/index.md"
 assert_nonempty "knowledge/architecture/index.md"
 assert_nonempty "knowledge/log.md"
 
@@ -171,6 +172,7 @@ echo "[ Loop 12 ] OKF provider docs have YAML frontmatter"
 for f in knowledge/providers/opencode-zen.md knowledge/providers/antigravity.md \
          knowledge/providers/kilocode.md knowledge/providers/nemotron.md \
          knowledge/providers/openrouter-free.md; do
+  assert_nonempty "$f"
   assert_contains "$f" "^type:"
 done
 
@@ -179,6 +181,7 @@ echo ""
 echo "[ Loop 13 ] OKF router docs have YAML frontmatter"
 for f in knowledge/routers/nine-router.md knowledge/routers/cli-relay.md \
          knowledge/routers/cli-proxy-api.md knowledge/routers/ai-client-2-api.md; do
+  assert_nonempty "$f"
   assert_contains "$f" "^type:"
 done
 
