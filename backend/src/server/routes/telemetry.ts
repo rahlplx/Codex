@@ -34,6 +34,13 @@ export function createTelemetryRouter(db: Database): Router {
     FROM usage_log WHERE tenant_id = ? AND timestamp >= datetime('now', '-1 day')
   `)
 
+  const stmtUsage = db.prepare(`
+    SELECT DATE(timestamp) as date, COUNT(*) as requests,
+           SUM(tokens_in + tokens_out) as total_tokens, SUM(cost_usd) as total_cost
+    FROM usage_log WHERE tenant_id = ? AND timestamp >= datetime('now', ?)
+    GROUP BY DATE(timestamp) ORDER BY date ASC
+  `)
+
   router.use(authGuard)
 
   router.get('/api/telemetry/rankings', (req, res) => {
@@ -50,12 +57,7 @@ export function createTelemetryRouter(db: Database): Router {
       res.status(400).json({ error: 'days parameter must be a positive integer up to 365' })
       return
     }
-    const rows = db.prepare(`
-      SELECT DATE(timestamp) as date, COUNT(*) as requests,
-             SUM(tokens_in + tokens_out) as total_tokens, SUM(cost_usd) as total_cost
-      FROM usage_log WHERE tenant_id = ? AND timestamp >= datetime('now', ?)
-      GROUP BY DATE(timestamp) ORDER BY date ASC
-    `).all(tenantId, `-${days} days`)
+    const rows = stmtUsage.all(tenantId, `-${days} days`)
     res.json(rows)
   })
 

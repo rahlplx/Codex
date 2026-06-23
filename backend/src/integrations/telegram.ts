@@ -1,3 +1,5 @@
+import { generateToken } from '../auth/jwt.js'
+
 interface TelegramUpdate {
   update_id: number
   message?: {
@@ -82,6 +84,14 @@ export class TelegramBotBridge {
     }
 
     const text = msg.text.trim()
+    const from = msg.from
+
+    // Generate a per-user JWT so backend API calls pass authGuard
+    const token = generateToken(`tg-${from.id}`, `${from.id}@telegram.local`, 'user')
+    const authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    }
 
     if (text === '/start' || text === '/help') {
       await this.sendMessage(msg.chat.id, [
@@ -95,7 +105,7 @@ export class TelegramBotBridge {
     }
 
     if (text === '/newthread') {
-      const thread = await this.createThread(msg.chat.id, msg.from)
+      const thread = await this.createThread(msg.chat.id, from, token)
       if (!thread) return
       await this.sendMessage(msg.chat.id, `Thread created: ${thread.title} (${thread.id})`)
       return
@@ -118,18 +128,20 @@ export class TelegramBotBridge {
 
       let threadId = this.chatThreadMap.get(msg.chat.id)
       if (!threadId) {
-        const thread = await this.createThread(msg.chat.id, msg.from)
+        const thread = await this.createThread(msg.chat.id, from, token)
         if (!thread) return
         threadId = thread.id
       }
 
       await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ role: 'user', content }),
       })
 
-      const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`)
+      const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
       let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
       if (historyRes.ok) {
         const history = await historyRes.json() as Array<{ role: string; content: string }>
@@ -138,7 +150,7 @@ export class TelegramBotBridge {
 
       const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ messages, stream: false }),
       })
       if (!completionRes.ok) {
@@ -150,7 +162,7 @@ export class TelegramBotBridge {
 
       await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ role: 'assistant', content: reply }),
       })
 
@@ -161,11 +173,11 @@ export class TelegramBotBridge {
     await this.sendMessage(msg.chat.id, 'Unknown command. Use /help to see available commands.')
   }
 
-  private async createThread(chatId: number, from: { id: number; first_name?: string }): Promise<{ id: string; title: string } | null> {
+  private async createThread(chatId: number, from: { id: number; first_name?: string }, token: string): Promise<{ id: string; title: string } | null> {
     const threadRes = await fetch(`${this.config.backendUrl}/api/threads`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: `Telegram ${from.first_name ?? from.id}`, userId: `tg-${from.id}` }),
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ title: `Telegram ${from.first_name ?? from.id}` }),
     })
     if (!threadRes.ok) {
       await this.sendMessage(chatId, 'Failed to create thread.')

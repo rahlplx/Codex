@@ -80,6 +80,11 @@ const server = app.listen(config.port, () => {
 
 function shutdown() {
   console.log('Shutting down gracefully...')
+  const forceExit = setTimeout(() => {
+    console.error('[shutdown] Force exiting after 10s — likely open SSE connections')
+    process.exit(1)
+  }, 10_000)
+  forceExit.unref()
   server.close(() => {
     scanner.stop()
     telegramBridge?.stop()

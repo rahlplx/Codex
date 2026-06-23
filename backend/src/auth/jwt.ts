@@ -9,7 +9,7 @@ export interface JwtPayload {
 }
 
 const jwtSecret = process.env['JWT_SECRET']
-if (!jwtSecret) {
+if (!jwtSecret || jwtSecret.length < 32) {
   throw new Error('JWT_SECRET environment variable must be set to a secure random value (min 32 chars)')
 }
 const SECRET = jwtSecret
