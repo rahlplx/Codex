@@ -43,9 +43,9 @@ export function createAuthRouter(db: Database): Router {
   // Duplicate-email check + count + insert all run inside one transaction to close TOCTOU races
   const registerTenant = db.transaction((id: string, email: string, displayName: string, passwordHash: string) => {
     const existing = stmtFindByEmail.get(email)
-    if (existing) return { conflict: true, role: '' }
+    if (existing) return { conflict: true, role: 'user' as const }
     const { count } = stmtCountTenants.get() as { count: number }
-    const role = count === 0 ? 'admin' : 'user'
+    const role = count === 0 ? 'admin' as const : 'user' as const
     stmtInsertTenant.run(id, email, displayName, passwordHash, role)
     return { conflict: false, role }
   })
