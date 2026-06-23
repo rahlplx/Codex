@@ -20,7 +20,7 @@ cd backend && npm run build          # Production build via tsup
 cd backend && npm run typecheck      # TypeScript strict mode check (tsc --noEmit)
 cd backend && npm run test           # Run all unit + integration tests (vitest)
 cd backend && npm run test:watch     # Watch mode
-cd backend && npx vitest run tests/unit/adapters/opencode-zen.test.ts  # Single test file
+cd backend && npx vitest run ../tests/unit/adapters/opencode-zen.test.ts  # Single test file
 ```
 
 ### Frontend (fork of codex-mobile / codexapp)
@@ -105,6 +105,9 @@ Vitest config is at `backend/vitest.config.ts` — it includes test paths from `
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated allowed origins |
 | `OPENCODE_ZEN_ENABLED` | `true` | Enable/disable per-provider (pattern: `<PROVIDER>_ENABLED`) |
 | `OPENROUTER_API_KEY` | — | API key for OpenRouter |
+| `GOOGLE_AI_API_KEY` | — | API key for Antigravity/Gemini |
+| `KILOCODE_API_KEY` | — | API key for KiloCode |
+| `OPENCODE_ZEN_API_KEY` | — | API key for OpenCode Zen |
 | `TELEGRAM_BOT_TOKEN` | — | Telegram bot bridge |
 
 ## Adding a New Provider Adapter
