@@ -12,6 +12,7 @@ import { runProviderScenarios } from './scenarios/providers.js'
 import { runTelemetryScenarios } from './scenarios/telemetry.js'
 import { runAdminScenarios } from './scenarios/admin.js'
 import { runErrorScenarios } from './scenarios/errors.js'
+import { runUserAdaptersScenarios } from './scenarios/userAdapters.js'
 import { generateReport } from './report.js'
 import type { ScenarioGroupResult } from './report.js'
 
@@ -46,16 +47,18 @@ async function runOnce(): Promise<{ allPassed: boolean; results: ScenarioGroupRe
     if (authCtx) {
       const { adminToken, adminId, userToken, userId } = authCtx
       await runGroup('providers', () => runProviderScenarios(http))
-      await runGroup('chat', () => runChatScenarios(http, mock))
+      await runGroup('chat', () => runChatScenarios(http, mock, adminToken))
       await runGroup('routing', () => runRoutingScenarios(http, adminToken))
       await runGroup('threads', () => runThreadScenarios(http, adminToken, userToken))
       await runGroup('telemetry', () => runTelemetryScenarios(http, adminToken))
+      // user-adapters must run before admin (admin deletes userId at the end)
+      await runGroup('user-adapters', () => runUserAdaptersScenarios(http, userToken, adminToken))
       // admin deletes userId at the end — must run after threads (ownership tests need userId alive)
       await runGroup('admin', () => runAdminScenarios(http, adminToken, adminId, userId))
       // errors runs last — avoids rate limiter interference with auth tests
       await runGroup('errors', () => runErrorScenarios(http, adminToken))
     } else {
-      const skipped: string[] = ['providers', 'chat', 'routing', 'threads', 'telemetry', 'admin', 'errors']
+      const skipped: string[] = ['providers', 'chat', 'routing', 'threads', 'telemetry', 'user-adapters', 'admin', 'errors']
       for (const name of skipped) {
         groupResults.push({ name, status: 'fail', error: 'Skipped: auth group failed', durationMs: 0 })
         console.log(`  ⏭  ${name} (skipped)`)

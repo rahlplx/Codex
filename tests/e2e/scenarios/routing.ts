@@ -11,7 +11,7 @@ export async function runRoutingScenarios(http: SimClient, adminToken: string): 
   await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'debug this typescript code and fix the type error' }],
     stream: false,
-  })
+  }, adminToken)
 
   // 1. GET /api/routing/auto-stats — shape check (requires auth)
   const stats = await http.get('/api/routing/auto-stats', adminToken)
@@ -54,7 +54,7 @@ export async function runRoutingScenarios(http: SimClient, adminToken: string): 
   const s503 = await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'hi' }],
     stream: false,
-  })
+  }, adminToken)
   assertStatus(s503.status, 503, 'routing.disabled_503')
 
   // 7. Re-enable
