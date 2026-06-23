@@ -35,10 +35,14 @@ export function createThreadsRouter(db: Database): Router {
 
   // Update thread (rename / archive)
   router.patch('/api/threads/:id', (req, res) => {
-    const body = req.body as { title?: string; archived?: boolean }
+    const body = req.body as { title?: unknown; archived?: unknown } | undefined
+    if (!body || typeof body !== 'object') {
+      res.status(400).json({ error: 'Request body must be an object' })
+      return
+    }
     const patch: Partial<Pick<Thread, 'title' | 'archived'>> = {}
-    if (body.title !== undefined) patch.title = body.title
-    if (body.archived !== undefined) patch.archived = body.archived
+    if (typeof body.title === 'string') patch.title = body.title
+    if (typeof body.archived === 'boolean') patch.archived = body.archived
     const thread = threads.update(req.params['id']!, patch)
     if (!thread) { res.status(404).json({ error: 'Thread not found' }); return }
     res.json(thread)
@@ -69,8 +73,13 @@ export function createThreadsRouter(db: Database): Router {
       res.status(400).json({ error: 'role must be system, user, or assistant' })
       return
     }
+    const threadId = req.params['id']!
+    if (!threads.findById(threadId)) {
+      res.status(404).json({ error: 'Thread not found' })
+      return
+    }
     const createInput: Parameters<typeof messages.create>[0] = {
-      threadId: req.params['id']!,
+      threadId,
       role: role as 'system' | 'user' | 'assistant',
       content,
     }

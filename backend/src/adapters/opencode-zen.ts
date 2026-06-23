@@ -113,9 +113,9 @@ export class OpenCodeZenAdapter extends AdapterBase {
     const messages = req.messages.map(m => {
       const out: Record<string, unknown> = { role: m.role, content: m.content }
       // Pass reasoning_content back for thinking-mode continuations
-      const ext = m as unknown as Record<string, unknown>
-      if (typeof ext['reasoning_content'] === 'string' && ext['reasoning_content']) {
-        out['reasoning_content'] = ext['reasoning_content']
+      const ext = m as { reasoning_content?: unknown }
+      if (typeof ext.reasoning_content === 'string' && ext.reasoning_content) {
+        out['reasoning_content'] = ext.reasoning_content
       }
       return out
     })

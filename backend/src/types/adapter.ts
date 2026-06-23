@@ -28,7 +28,6 @@ export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
   name?: string | undefined
-  [key: string]: unknown
 }
 
 export interface ChatCompletionRequest {
