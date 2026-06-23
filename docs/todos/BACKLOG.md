@@ -41,3 +41,12 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Implement frontend scaffold: Vite + Vue 3 + Tailwind + 3 views |
 | 2026-06-23 | Write unit tests for registry + router (TDD) |
 | 2026-06-23 | Merge PR #4 (CI) and PR #1 (WebUI architecture) to main |
+| 2026-06-23 | Clone codex-mobile as frontend/ (as-is, no scratch build) |
+| 2026-06-23 | Apply 5 Gemini review fixes (quota null, Array.isArray, lockfile tracking) |
+| 2026-06-23 | Create IconTablerServer.vue + IconTablerBrain.vue |
+| 2026-06-23 | Add /providers + /models routes to Vue Router |
+| 2026-06-23 | Create ProviderCard.vue (full codex-mobile design system) |
+| 2026-06-23 | Create ProviderDashboard.vue (3 tabs: CLIs / Routers / Savings) |
+| 2026-06-23 | Create ModelCatalog.vue (search + filter + sort table) |
+| 2026-06-23 | Wire App.vue: sidebar nav, ContentHeader, content branches, computed props |
+| 2026-06-23 | Merge PR #6 to main; close PR #5 (stale from-scratch approach) |
