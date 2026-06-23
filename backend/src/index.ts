@@ -43,13 +43,26 @@ const inits = await Promise.allSettled([
   aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }),
 ])
 
-const adapters = [zen, nemotron, openrouter, antigravity, kilocode, nineRouter, cliRelay, cliProxyApi, aiClient2Api]
-const adapterNames = ['zen', 'nemotron', 'openrouter', 'antigravity', 'kilocode', 'nine-router', 'cli-relay', 'cli-proxy-api', 'ai-client2api']
+const adapterDefs = [
+  { adapter: zen, name: 'zen' },
+  { adapter: nemotron, name: 'nemotron' },
+  { adapter: openrouter, name: 'openrouter' },
+  { adapter: antigravity, name: 'antigravity' },
+  { adapter: kilocode, name: 'kilocode' },
+  { adapter: nineRouter, name: 'nine-router' },
+  { adapter: cliRelay, name: 'cli-relay' },
+  { adapter: cliProxyApi, name: 'cli-proxy-api' },
+  { adapter: aiClient2Api, name: 'ai-client2api' },
+]
+if (inits.length !== adapterDefs.length) {
+  throw new Error(`[startup] init/adapter count mismatch: ${inits.length} !== ${adapterDefs.length}`)
+}
 inits.forEach((result, i) => {
+  const def = adapterDefs[i]!
   if (result.status === 'rejected') {
-    console.error(`[${adapterNames[i]}] initialization failed:`, result.reason)
+    console.error(`[${def.name}] initialization failed:`, result.reason)
   } else {
-    registry.register(adapters[i]!)
+    registry.register(def.adapter)
   }
 })
 

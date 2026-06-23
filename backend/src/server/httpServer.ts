@@ -10,6 +10,8 @@ import { createThreadsRouter } from './routes/threads.js'
 import { createAuthRouter } from './routes/auth.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createTelemetryRouter } from './routes/telemetry.js'
+import { createRoutingRouter } from './routes/routing.js'
+import { DomainScoreRepository } from '../storage/domainScores.js'
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
   .split(',')
@@ -45,12 +47,17 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   app.use(createHealthRouter(db))
   app.use(createProvidersRouter(reg))
   app.use(createModelsRouter(reg))
-  app.use(createChatRouter(reg))
+
   if (db) {
+    const domainScores = new DomainScoreRepository(db)
+    app.use(createChatRouter(reg, domainScores))
+    app.use(createRoutingRouter(domainScores))
     app.use(createThreadsRouter(db))
     app.use(createAuthRouter(db))
     app.use(createAdminRouter(db))
     app.use(createTelemetryRouter(db))
+  } else {
+    app.use(createChatRouter(reg))
   }
 
   return app

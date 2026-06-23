@@ -69,6 +69,16 @@ export function openDatabase(path: string): Database {
     CREATE INDEX IF NOT EXISTS idx_usage_log_timestamp ON usage_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_threads_user ON threads(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id, ts ASC);
+
+    CREATE TABLE IF NOT EXISTS adapter_domain_scores (
+      adapter_id       TEXT NOT NULL,
+      domain           TEXT NOT NULL,
+      success_count    INTEGER NOT NULL DEFAULT 0,
+      failure_count    INTEGER NOT NULL DEFAULT 0,
+      total_latency_ms INTEGER NOT NULL DEFAULT 0,
+      updated_at       TEXT DEFAULT (datetime('now')),
+      PRIMARY KEY (adapter_id, domain)
+    );
   `)
 
   return db
