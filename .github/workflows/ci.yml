@@ -61,13 +61,31 @@ jobs:
         run: cd backend && npx vitest run --config vitest.config.ts -- ../tests/integration/ || echo "No integration tests found"
 
   e2e-tests:
-    name: E2E Tests
+    name: E2E Simulation
     runs-on: ubuntu-latest
     needs: integration-tests
+    env:
+      JWT_SECRET: sim-secret-codex-e2e-ci-minimum-32chars!!
+      SIM_MAX_ITERATIONS: "3"
     steps:
       - uses: actions/checkout@v4
-      - name: E2E tests placeholder
-        run: echo "Playwright E2E tests configured — run locally with npx playwright test"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        run: cd backend && npm ci
+      - name: Run E2E simulation
+        run: bash tests/e2e/run.sh
+      - name: Upload simulation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-audit-report
+          path: |
+            logs/sessions/
+            logs/telemetry/
 
   telemetry:
     name: Telemetry Push

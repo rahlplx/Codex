@@ -52,8 +52,10 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
     const domainScores = new DomainScoreRepository(db)
     app.use(createChatRouter(reg, domainScores))
     app.use(createRoutingRouter(domainScores))
-    app.use(createThreadsRouter(db))
+    // auth must come before threads/admin/telemetry — those routers have router.use(authGuard)
+    // which intercepts all paths, so /api/auth/* must be handled first
     app.use(createAuthRouter(db))
+    app.use(createThreadsRouter(db))
     app.use(createAdminRouter(db))
     app.use(createTelemetryRouter(db))
   } else {
