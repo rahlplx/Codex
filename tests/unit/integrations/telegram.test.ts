@@ -185,6 +185,197 @@ describe('TelegramBotBridge — fetchUpdates', () => {
     expect(body.text).toContain('Usage: /chat')
   })
 
+  it('handles /chat with message — creates thread and gets completion', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/chat hello world', from: { id: 100, first_name: 'Test' }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      // createThread POST /api/threads
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'thread-1', title: 'Telegram Test' }) })
+      // POST /api/threads/thread-1/messages (user message)
+      .mockResolvedValueOnce({ ok: true })
+      // GET /api/threads/thread-1/messages (history)
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([{ role: 'user', content: 'hello world' }]) })
+      // POST /api/chat/completions
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'Hi there!' } }] }) })
+      // POST /api/threads/thread-1/messages (assistant reply)
+      .mockResolvedValueOnce({ ok: true })
+      // sendMessage to Telegram
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    expect(bridge.getMappedChats()).toBe(1)
+    expect(fetchMock).toHaveBeenCalledTimes(7)
+    const sendCall = fetchMock.mock.calls[6]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toBe('Hi there!')
+  })
+
+  it('handles /chat with existing thread — skips thread creation', async () => {
+    // First create a thread via /newthread
+    const newThreadUpdates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/newthread', from: { id: 100, first_name: 'Test' }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(newThreadUpdates) })
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'thread-1', title: 'Telegram Test' }) })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    expect(bridge.getMappedChats()).toBe(1)
+
+    // Now send /chat — should reuse existing thread
+    const chatUpdates = {
+      ok: true,
+      result: [{
+        update_id: 2,
+        message: { message_id: 2, text: '/chat test msg', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    fetchMock.mockReset()
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(chatUpdates) })
+      // POST user message (no thread creation)
+      .mockResolvedValueOnce({ ok: true })
+      // GET history
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([{ role: 'user', content: 'test msg' }]) })
+      // POST completion
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'reply' } }] }) })
+      // POST assistant message
+      .mockResolvedValueOnce({ ok: true })
+      // sendMessage
+      .mockResolvedValueOnce({ ok: true })
+
+    await bridge.fetchUpdates()
+    // No thread creation call — 6 calls not 7
+    expect(fetchMock).toHaveBeenCalledTimes(6)
+  })
+
+  it('handles /chat when completion fails', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/chat test', from: { id: 100, first_name: 'Test' }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      // createThread
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'thread-1', title: 'T' }) })
+      // POST user message
+      .mockResolvedValueOnce({ ok: true })
+      // GET history
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) })
+      // POST completion — fails
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      // sendMessage error
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    const sendCall = fetchMock.mock.calls[5]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toBe('AI request failed.')
+  })
+
+  it('handles /chat when thread creation fails', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/chat test', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      // createThread fails
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      // sendMessage "Failed to create thread"
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    const sendCall = fetchMock.mock.calls[2]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toBe('Failed to create thread.')
+  })
+
+  it('handles /newthread when creation fails', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/newthread', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    expect(bridge.getMappedChats()).toBe(0)
+    const sendCall = fetchMock.mock.calls[2]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toBe('Failed to create thread.')
+  })
+
+  it('handles unknown command', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/unknown', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    const sendCall = fetchMock.mock.calls[1]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toContain('Unknown command')
+  })
+
+  it('skips messages without text', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) }))
+
+    const bridge = makeBridge()
+    const result = await bridge.fetchUpdates()
+    expect(result).toHaveLength(1)
+    // Only 1 fetch call (getUpdates), no sendMessage
+    expect((fetch as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1)
+  })
+
   it('sendMessage does not include parse_mode', async () => {
     const updates = {
       ok: true,
