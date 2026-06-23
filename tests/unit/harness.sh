@@ -221,6 +221,81 @@ for feat in FEAT-001-provider-dashboard FEAT-002-multi-tenant-auth \
   assert_contains "docs/features/$feat.md" "Acceptance Criteria"
 done
 
+# --- Loop 18: Source code structure ---
+echo ""
+echo "[ Loop 18 ] Source code structure"
+assert_dir "src/backend"
+assert_dir "src/backend/src/adapters"
+assert_dir "src/backend/src/orchestrator"
+assert_dir "src/backend/src/auth"
+assert_dir "src/backend/src/db"
+assert_dir "src/backend/src/api"
+assert_dir "src/frontend"
+assert_dir "src/frontend/src"
+assert_dir "src/shared"
+assert_file "src/backend/src/server.ts"
+assert_file "src/shared/src/types/adapter.types.ts"
+
+# --- Loop 19: Backend adapters and orchestrator ---
+echo ""
+echo "[ Loop 19 ] Backend adapters and orchestrator"
+assert_nonempty "src/backend/src/adapters/opencode-zen.ts"
+assert_nonempty "src/backend/src/adapters/openrouter-free.ts"
+assert_nonempty "src/backend/src/adapters/nemotron.ts"
+assert_nonempty "src/backend/src/adapters/registry.ts"
+assert_nonempty "src/backend/src/orchestrator/router.ts"
+assert_nonempty "src/backend/src/orchestrator/health.ts"
+assert_nonempty "src/backend/src/orchestrator/circuit-breaker.ts"
+
+# --- Loop 20: Docker files ---
+echo ""
+echo "[ Loop 20 ] Docker deployment files"
+assert_nonempty "docker-compose.yml"
+assert_nonempty "src/backend/Dockerfile"
+assert_nonempty "src/frontend/Dockerfile"
+assert_contains "docker-compose.yml" "frontend"
+assert_contains "docker-compose.yml" "backend"
+
+# --- Loop 21: Frontend scaffolding ---
+echo ""
+echo "[ Loop 21 ] Frontend scaffolding"
+assert_nonempty "src/frontend/package.json"
+assert_nonempty "src/frontend/vite.config.ts"
+assert_nonempty "src/frontend/index.html"
+assert_nonempty "src/frontend/src/main.ts"
+assert_nonempty "src/frontend/src/App.vue"
+assert_nonempty "src/frontend/src/router/index.ts"
+assert_nonempty "src/frontend/src/api/gateway.ts"
+
+# --- Loop 22: Frontend components ---
+echo ""
+echo "[ Loop 22 ] Frontend components"
+assert_nonempty "src/frontend/src/components/chat/ChatView.vue"
+assert_nonempty "src/frontend/src/components/chat/MessageBubble.vue"
+assert_nonempty "src/frontend/src/components/chat/ChatInput.vue"
+assert_nonempty "src/frontend/src/components/chat/ThreadSidebar.vue"
+assert_nonempty "src/frontend/src/components/auth/LoginPage.vue"
+assert_nonempty "src/frontend/src/components/auth/RegisterPage.vue"
+assert_nonempty "src/frontend/src/components/providers/ProviderDashboard.vue"
+assert_nonempty "src/frontend/src/components/telemetry/TelemetryDashboard.vue"
+assert_nonempty "src/frontend/src/components/layout/AppLayout.vue"
+
+# --- Loop 23: Pinia stores ---
+echo ""
+echo "[ Loop 23 ] Pinia stores"
+assert_nonempty "src/frontend/src/stores/auth.store.ts"
+assert_nonempty "src/frontend/src/stores/thread.store.ts"
+assert_nonempty "src/frontend/src/stores/provider.store.ts"
+assert_nonempty "src/frontend/src/stores/telemetry.store.ts"
+
+# --- Loop 24: pnpm workspace ---
+echo ""
+echo "[ Loop 24 ] Monorepo config"
+assert_nonempty "pnpm-workspace.yaml"
+assert_contains "pnpm-workspace.yaml" "src/shared"
+assert_contains "pnpm-workspace.yaml" "src/backend"
+assert_contains "pnpm-workspace.yaml" "src/frontend"
+
 # --- Summary ---
 echo ""
 echo "======================================"
