@@ -6,6 +6,7 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
+| P0 | Fix ci.yml for self-hosted runner (bracket notation) | DevOps | CI |
 | P1 | Build Antigravity CLI adapter (OAuth flow) | Engineer | Backend |
 | P1 | Build KiloCode adapter | Engineer | Backend |
 | P1 | Implement dynamic model discovery scanner (hourly) | Engineer | Backend |
@@ -62,3 +63,10 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Add useCodexAgent composable with auth + admin guard |
 | 2026-06-23 | Add /telemetry and /admin routes to Vue Router |
 | 2026-06-23 | Evolve harness from 64 to 109 assertions (Loops 11-18) |
+| 2026-06-23 | Wire Telemetry + Admin panels into App.vue (unified design system) |
+| 2026-06-23 | Implement 3-layer admin visibility (sidebar v-if, router meta guard, backend JWT) |
+| 2026-06-23 | Create IconTablerChartBar.vue + IconTablerShield.vue |
+| 2026-06-23 | Security hardening: timing-safe JWT, SSE \r handling, reader cleanup, rolling quota reset, timestamp index, days validation, 401 auto-logout |
+| 2026-06-23 | Resolve all 8 Gemini code review findings on PR #8 |
+| 2026-06-23 | Merge PR #7 (vitest 2.x → 4.x security bump) |
+| 2026-06-23 | Rebase PR #8 onto updated main (clean, no conflicts) |
