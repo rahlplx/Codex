@@ -65,10 +65,15 @@ const db = openDatabase(config.databasePath)
 const scanner = new ModelDiscoveryScanner(registry)
 scanner.start()
 
-const telegramBridge = createTelegramBridge()
-if (telegramBridge) {
-  telegramBridge.start()
-  console.log('Telegram bot bridge started')
+let telegramBridge: ReturnType<typeof createTelegramBridge> = null
+try {
+  telegramBridge = createTelegramBridge()
+  if (telegramBridge) {
+    telegramBridge.start()
+    console.log('Telegram bot bridge started')
+  }
+} catch (e) {
+  console.error('[TelegramBridge] Failed to start:', e)
 }
 
 const app = createApp(registry, db)

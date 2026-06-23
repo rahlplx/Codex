@@ -29,6 +29,27 @@ function checkLoginRateLimit(ip: string): boolean {
 export function createAuthRouter(db: Database): Router {
   const router = Router()
 
+  // Hoisted prepared statements — compiled once at startup
+  const stmtFindByEmail = db.prepare('SELECT id FROM tenants WHERE email = ?')
+  const stmtCountTenants = db.prepare('SELECT COUNT(*) as count FROM tenants')
+  const stmtInsertTenant = db.prepare(
+    'INSERT INTO tenants (id, email, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)'
+  )
+  const stmtFindForLogin = db.prepare(
+    'SELECT id, email, display_name, password_hash, role, created_at FROM tenants WHERE email = ?'
+  )
+  const stmtUpdateLastActive = db.prepare("UPDATE tenants SET last_active = datetime('now') WHERE id = ?")
+
+  // Duplicate-email check + count + insert all run inside one transaction to close TOCTOU races
+  const registerTenant = db.transaction((id: string, email: string, displayName: string, passwordHash: string) => {
+    const existing = stmtFindByEmail.get(email)
+    if (existing) return { conflict: true, role: '' }
+    const { count } = stmtCountTenants.get() as { count: number }
+    const role = count === 0 ? 'admin' : 'user'
+    stmtInsertTenant.run(id, email, displayName, passwordHash, role)
+    return { conflict: false, role }
+  })
+
   router.post('/api/auth/register', async (req, res) => {
     try {
       const { email, password, displayName } = req.body as { email?: string; password?: string; displayName?: string }
@@ -37,26 +58,17 @@ export function createAuthRouter(db: Database): Router {
         return
       }
 
-      const existing = db.prepare('SELECT id FROM tenants WHERE email = ?').get(email)
-      if (existing) {
+      const id = crypto.randomUUID()
+      const passwordHash = await hashPassword(password)
+
+      const result = registerTenant(id, email, displayName, passwordHash)
+      if (result.conflict) {
         res.status(409).json({ error: 'Email already registered' })
         return
       }
 
-      const id = crypto.randomUUID()
-      const passwordHash = await hashPassword(password)
-
-      // Wrap count+insert in a transaction to prevent TOCTOU race on first-admin election
-      const insertTenant = db.transaction(() => {
-        const { count } = db.prepare('SELECT COUNT(*) as count FROM tenants').get() as { count: number }
-        const role = count === 0 ? 'admin' : 'user'
-        db.prepare('INSERT INTO tenants (id, email, display_name, password_hash, role) VALUES (?, ?, ?, ?, ?)').run(id, email, displayName, passwordHash, role)
-        return role
-      })
-      const role = insertTenant()
-
-      const token = generateToken(id, email, role)
-      res.status(201).json({ token, user: { id, email, displayName, role, createdAt: new Date().toISOString() } })
+      const token = generateToken(id, email, result.role)
+      res.status(201).json({ token, user: { id, email, displayName, role: result.role, createdAt: new Date().toISOString() } })
     } catch {
       res.status(500).json({ error: 'Internal server error' })
     }
@@ -76,7 +88,7 @@ export function createAuthRouter(db: Database): Router {
         return
       }
 
-      const tenant = db.prepare('SELECT id, email, display_name, password_hash, role, created_at FROM tenants WHERE email = ?').get(email) as
+      const tenant = stmtFindForLogin.get(email) as
         | { id: string; email: string; display_name: string; password_hash: string; role: string; created_at: string }
         | undefined
 
@@ -85,7 +97,7 @@ export function createAuthRouter(db: Database): Router {
         return
       }
 
-      db.prepare("UPDATE tenants SET last_active = datetime('now') WHERE id = ?").run(tenant.id)
+      stmtUpdateLastActive.run(tenant.id)
       const token = generateToken(tenant.id, tenant.email, tenant.role as 'admin' | 'user')
       res.json({ token, user: { id: tenant.id, email: tenant.email, displayName: tenant.display_name, role: tenant.role, createdAt: tenant.created_at } })
     } catch {
