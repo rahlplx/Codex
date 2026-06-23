@@ -6,8 +6,6 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
-| P1 | Implement OpenCode Zen adapter (`src/adapters/opencode-zen.ts`) | Engineer | F001 |
-| P1 | Wire `/api/chat/completions` route end-to-end | Engineer | F001 |
 | P1 | Implement SQLite storage layer (threads, messages) | Engineer | F001 |
 | P2 | Frontend: connect Provider Dashboard to live `/api/providers` | Engineer | F002 |
 | P2 | Frontend: implement Chat view with WebSocket streaming | Engineer | F002 |
@@ -50,3 +48,5 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Create ModelCatalog.vue (search + filter + sort table) |
 | 2026-06-23 | Wire App.vue: sidebar nav, ContentHeader, content branches, computed props |
 | 2026-06-23 | Merge PR #6 to main; close PR #5 (stale from-scratch approach) |
+| 2026-06-23 | Implement OpenCode Zen adapter with 26 unit tests (TDD) |
+| 2026-06-23 | Wire POST /api/chat/completions (streaming + non-streaming, 16 tests, 53 total green) |
