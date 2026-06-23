@@ -205,6 +205,22 @@ assert_contains "ARCHITECTURE.md" "Tier 1"
 assert_contains "ARCHITECTURE.md" "Tier 2"
 assert_contains "ARCHITECTURE.md" "CLI Adapter Interface"
 
+# --- Loop 16: SPEC-002 exists and is accepted ---
+echo ""
+echo "[ Loop 16 ] SPEC-002 tech stack"
+assert_file "docs/specs/SPEC-002-tech-stack.md"
+assert_contains "docs/specs/SPEC-002-tech-stack.md" "Status.*Accepted"
+
+# --- Loop 17: Feature docs exist with acceptance criteria ---
+echo ""
+echo "[ Loop 17 ] Feature docs with acceptance criteria"
+for feat in FEAT-001-provider-dashboard FEAT-002-multi-tenant-auth \
+            FEAT-003-chat-interface FEAT-004-cli-adapter-system \
+            FEAT-005-telemetry-dashboard FEAT-006-docker-deployment; do
+  assert_nonempty "docs/features/$feat.md"
+  assert_contains "docs/features/$feat.md" "Acceptance Criteria"
+done
+
 # --- Summary ---
 echo ""
 echo "======================================"

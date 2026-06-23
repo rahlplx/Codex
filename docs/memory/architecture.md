@@ -26,6 +26,14 @@ Multi-tenant architecture on single VPS (4 vCPU, 8GB RAM). Per-tenant API keys e
 
 Dynamic model registry because free models change daily/weekly. Discovery scanner (hourly), health prober (60s), circuit breakers (3 failures → open → 5min recovery). Composite scoring: 35% reliability + 25% speed + 20% quality + 15% cost + 5% recency. All routing data-driven from request telemetry, not static config.
 
+## 2026-06-23 — SPEC-002: Tech stack finalized
+
+Accepted Vue 3 + Tailwind CSS 4 + Vite 6 (forked from codex-mobile) for frontend, Express 5 + TypeScript strict + better-sqlite3 (WAL mode) for backend. Chose better-sqlite3 over Prisma/Sequelize to avoid ORM overhead on a 1.5GB memory budget. pnpm workspaces for monorepo (backend + frontend + shared types). Docker Compose for deployment with optional sidecar profiles. Node.js 22 LTS runtime with 1GB heap limit.
+
+## 2026-06-23 — Feature-driven UI/UX planning
+
+Adopted screen-by-screen feature docs (FEAT-001 through FEAT-006) with ASCII wireframes, Vue component mappings, route definitions, and acceptance criteria. Each feature doc links to its spec and defines test coverage paths. This ensures every UI screen is designed before implementation and every component has a clear owner.
+
 ## 2026-06-23 — Dual documentation systems
 
 Project uses two complementary doc systems: (1) `docs/` — agentic engineering docs (memory, context, specs, features, todos, brainstorming, agents) following CLAUDE.md conventions, (2) `knowledge/` — OKF v0.1 knowledge base for domain knowledge (providers, routers, models, architecture, design). `docs/` is workflow-oriented; `knowledge/` is reference-oriented.

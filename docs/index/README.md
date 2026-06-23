@@ -7,12 +7,18 @@ Master catalog of all documents in this repository. Update this file whenever a 
 | File | Title | Status | Date |
 |------|-------|--------|------|
 | [SPEC-001-folder-structure.md](../specs/SPEC-001-folder-structure.md) | Agentic Engineering Folder Structure | Accepted | 2026-06-22 |
+| [SPEC-002-tech-stack.md](../specs/SPEC-002-tech-stack.md) | Tech Stack | Accepted | 2026-06-23 |
 
 ## Features
 
-| File | Title | Status | Owner |
+| File | Title | Status | Phase |
 |------|-------|--------|-------|
-| _(none yet)_ | | | |
+| [FEAT-001-provider-dashboard.md](../features/FEAT-001-provider-dashboard.md) | Provider Dashboard (Hermes-style UI) | Planned | 2 |
+| [FEAT-002-multi-tenant-auth.md](../features/FEAT-002-multi-tenant-auth.md) | Multi-Tenant Auth + API Key Management | Planned | 2 |
+| [FEAT-003-chat-interface.md](../features/FEAT-003-chat-interface.md) | Chat Interface (codex-mobile fork) | Planned | 1 |
+| [FEAT-004-cli-adapter-system.md](../features/FEAT-004-cli-adapter-system.md) | CLI Adapter System (3 Tier-1 adapters) | Planned | 1 |
+| [FEAT-005-telemetry-dashboard.md](../features/FEAT-005-telemetry-dashboard.md) | Telemetry Dashboard | Planned | 2 |
+| [FEAT-006-docker-deployment.md](../features/FEAT-006-docker-deployment.md) | Docker Deployment | Planned | 1 |
 
 ## Knowledge (docs/knowledge/)
 

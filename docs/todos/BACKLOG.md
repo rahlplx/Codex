@@ -7,7 +7,8 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
 | P0 | Register self-hosted runner to unblock CI | DevOps | — |
-| P0 | Write SPEC-002: Tech stack (Vue 3 + Express + SQLite + Docker) | Architect | — |
+| P0 | Scaffold `src/backend/` (Express 5 + TypeScript + SQLite) | Engineer | Backend |
+| P0 | Scaffold `src/frontend/` (fork codex-mobile, strip bridge) | Engineer | Frontend |
 | P1 | Fork codex-mobile into `frontend/` and strip Codex-specific bridge | Engineer | Frontend |
 | P1 | Scaffold backend (Express 5 + TypeScript + SQLite WAL) | Engineer | Backend |
 | P1 | Implement base CLI adapter interface + OpenCode Zen adapter | Engineer | Backend |
@@ -52,3 +53,6 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Design VPS resource constraints + Docker resource limits |
 | 2026-06-23 | Create AGENTS.md (agentic engineering guide) |
 | 2026-06-23 | PR #1 merged: architecture + OKF knowledge base |
+| 2026-06-23 | Write SPEC-002: Tech stack (Vue 3 + Express + SQLite + Docker) |
+| 2026-06-23 | Write FEAT-001 through FEAT-006 with screen-by-screen UI/UX |
+| 2026-06-23 | Evolve harness to 119 assertions (Loops 16-17: spec + feature validation) |
