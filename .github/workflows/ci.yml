@@ -73,7 +73,7 @@ jobs:
     name: Telemetry Push
     runs-on: ubuntu-latest
     needs: [lint, unit-tests, integration-tests, e2e-tests]
-    if: ${{ always() }}
+    if: always()
     steps:
       - name: Record pipeline run
         env:
@@ -98,3 +98,4 @@ jobs:
             echo ""
             echo "**SHA:** ${SHA} | **Ref:** ${REF} | **Time:** ${TS}"
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "Telemetry recorded successfully"
