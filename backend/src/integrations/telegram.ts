@@ -21,6 +21,8 @@ export class TelegramBotBridge {
   private polling = false
   private pollTimer: ReturnType<typeof setTimeout> | null = null
   private chatThreadMap = new Map<number, string>()
+  // Cache JWTs per Telegram user ID — tokens expire after 24h, we refresh at 23h
+  private tokenCache = new Map<number, { token: string; expiresAt: number }>()
 
   constructor(private readonly config: TelegramBotConfig) {}
 
@@ -86,8 +88,15 @@ export class TelegramBotBridge {
     const text = msg.text.trim()
     const from = msg.from
 
-    // Generate a per-user JWT so backend API calls pass authGuard
-    const token = generateToken(`tg-${from.id}`, `${from.id}@telegram.local`, 'user')
+    // Reuse cached JWT for 23h; regenerate only when within 1h of expiry
+    const cached = this.tokenCache.get(from.id)
+    const token = (cached && cached.expiresAt - Date.now() > 60 * 60 * 1000)
+      ? cached.token
+      : (() => {
+          const t = generateToken(`tg-${from.id}`, `${from.id}@telegram.local`, 'user')
+          this.tokenCache.set(from.id, { token: t, expiresAt: Date.now() + 23 * 60 * 60 * 1000 })
+          return t
+        })()
     const authHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,

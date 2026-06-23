@@ -43,32 +43,30 @@ const inits = await Promise.allSettled([
   aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }),
 ])
 
+const adapters = [zen, nemotron, openrouter, antigravity, kilocode, nineRouter, cliRelay, cliProxyApi, aiClient2Api]
 const adapterNames = ['zen', 'nemotron', 'openrouter', 'antigravity', 'kilocode', 'nine-router', 'cli-relay', 'cli-proxy-api', 'ai-client2api']
 inits.forEach((result, i) => {
   if (result.status === 'rejected') {
     console.error(`[${adapterNames[i]}] initialization failed:`, result.reason)
+  } else {
+    registry.register(adapters[i]!)
   }
 })
-
-registry.register(zen)
-registry.register(nemotron)
-registry.register(openrouter)
-registry.register(antigravity)
-registry.register(kilocode)
-registry.register(nineRouter)
-registry.register(cliRelay)
-registry.register(cliProxyApi)
-registry.register(aiClient2Api)
 
 const db = openDatabase(config.databasePath)
 
 const scanner = new ModelDiscoveryScanner(registry)
 scanner.start()
 
-const telegramBridge = createTelegramBridge()
-if (telegramBridge) {
-  telegramBridge.start()
-  console.log('Telegram bot bridge started')
+let telegramBridge: ReturnType<typeof createTelegramBridge> = null
+try {
+  telegramBridge = createTelegramBridge()
+  if (telegramBridge) {
+    telegramBridge.start()
+    console.log('Telegram bot bridge started')
+  }
+} catch (e) {
+  console.error('[TelegramBridge] Failed to start:', e)
 }
 
 const app = createApp(registry, db)
@@ -85,9 +83,11 @@ function shutdown() {
     process.exit(1)
   }, 10_000)
   forceExit.unref()
+
+  scanner.stop()
+  telegramBridge?.stop()
+
   server.close(() => {
-    scanner.stop()
-    telegramBridge?.stop()
     db.close()
     process.exit(0)
   })

@@ -50,6 +50,7 @@ export function createThreadsRouter(db: Database): Router {
     if (typeof body.title === 'string') patch.title = body.title
     if (typeof body.archived === 'boolean') patch.archived = body.archived
     const thread = threads.update(req.params['id']!, patch)
+    if (!thread) { res.status(404).json({ error: 'Thread not found' }); return }
     res.json(thread)
   })
 
