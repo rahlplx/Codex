@@ -151,6 +151,57 @@ echo "[ Loop 10 ] Claude settings hook correctness"
 assert_contains ".claude/settings.json" "mkdir -p logs/telemetry"
 assert_contains ".claude/settings.json" "PostToolUse"
 
+# --- Loop 11: OKF knowledge base structure ---
+echo ""
+echo "[ Loop 11 ] OKF knowledge base structure"
+assert_nonempty "knowledge/index.md"
+assert_dir "knowledge/providers"
+assert_dir "knowledge/routers"
+assert_dir "knowledge/models"
+assert_dir "knowledge/architecture"
+assert_dir "knowledge/design"
+assert_nonempty "knowledge/providers/index.md"
+assert_nonempty "knowledge/routers/index.md"
+assert_nonempty "knowledge/architecture/index.md"
+assert_nonempty "knowledge/log.md"
+
+# --- Loop 12: OKF provider docs have YAML frontmatter ---
+echo ""
+echo "[ Loop 12 ] OKF provider docs have YAML frontmatter"
+for f in knowledge/providers/opencode-zen.md knowledge/providers/antigravity.md \
+         knowledge/providers/kilocode.md knowledge/providers/nemotron.md \
+         knowledge/providers/openrouter-free.md; do
+  assert_contains "$f" "^type:"
+done
+
+# --- Loop 13: OKF router docs have YAML frontmatter ---
+echo ""
+echo "[ Loop 13 ] OKF router docs have YAML frontmatter"
+for f in knowledge/routers/nine-router.md knowledge/routers/cli-relay.md \
+         knowledge/routers/cli-proxy-api.md knowledge/routers/ai-client-2-api.md; do
+  assert_contains "$f" "^type:"
+done
+
+# --- Loop 14: Architecture and design docs exist ---
+echo ""
+echo "[ Loop 14 ] Architecture and design docs"
+assert_nonempty "ARCHITECTURE.md"
+assert_nonempty "AGENTS.md"
+assert_nonempty "knowledge/architecture/multi-tenant.md"
+assert_nonempty "knowledge/architecture/vps-constraints.md"
+assert_nonempty "knowledge/models/model-routing.md"
+assert_nonempty "knowledge/models/free-models.md"
+assert_nonempty "knowledge/design/provider-settings.md"
+
+# --- Loop 15: ARCHITECTURE.md has key sections ---
+echo ""
+echo "[ Loop 15 ] ARCHITECTURE.md key sections"
+assert_contains "ARCHITECTURE.md" "multi-tenant"
+assert_contains "ARCHITECTURE.md" "Docker Compose"
+assert_contains "ARCHITECTURE.md" "Tier 1"
+assert_contains "ARCHITECTURE.md" "Tier 2"
+assert_contains "ARCHITECTURE.md" "CLI Adapter Interface"
+
 # --- Summary ---
 echo ""
 echo "======================================"

@@ -14,6 +14,28 @@ Append-only log of mistakes, near-misses, and how they were resolved.
 
 **Resolution:** Use single-quote concatenation: `'prefix_'$(command)'_suffix'` so the command substitution is outside the single-quoted section and evaluates correctly.
 
+## 2026-06-23 — Docker Compose: browser can't resolve Docker-internal hostnames
+
+**Mistake:** Set `VITE_BACKEND_URL=http://backend:3001` in Docker Compose — `backend` is a container name resolvable only inside the Docker network, not from the user's browser. Would cause `ERR_NAME_NOT_RESOLVED`.
+
+**Resolution:** Use relative path `VITE_BACKEND_URL=/api` and let the reverse proxy (Caddy) route `/api/*` to the backend container. Browser never needs to know container names.
+
+## 2026-06-23 — Docker Compose: depends_on with profile-gated services
+
+**Mistake:** Backend service had `depends_on: nine-router`, but nine-router was under `profiles: [routers]`. Default `docker compose up` would fail because the dependency isn't in the active profile.
+
+**Resolution:** Remove `depends_on` for optional sidecars. Backend must gracefully handle missing sidecars — check health on startup, skip unavailable routers.
+
+## 2026-06-23 — SQLite connection strings differ between ecosystems
+
+**Mistake:** Used `sqlite:///app/data/codex.db` (Python/SQLAlchemy format) for a Node.js backend. Node.js ORMs use different formats: Prisma wants `file:`, Sequelize wants `sqlite:`, better-sqlite3 wants just a file path.
+
+**Resolution:** Use `DATABASE_PATH=/app/data/codex.db` (plain file path) and let the ORM adapter handle connection internally. Avoids coupling to any specific ORM's connection string format.
+
+## 2026-06-23 — Gemini CLI is dead; free tiers shift constantly
+
+**Lesson:** Gemini CLI deprecated June 18, 2026. iFlow and Qwen CLI free tiers also discontinued in 2026. Free AI model availability changes on weekly/daily basis. Never hard-code model assumptions — use dynamic discovery with health probing and fallback chains.
+
 ## 2026-06-22 — Ephemeral CI workspace: file writes are lost
 
 **Mistake:** Telemetry step wrote pipeline run records to `logs/pipeline/<run_id>.jsonl` in the checkout workspace, without committing or uploading as an artifact. The file was silently discarded when the job completed.

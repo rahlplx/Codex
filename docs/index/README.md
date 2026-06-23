@@ -14,11 +14,41 @@ Master catalog of all documents in this repository. Update this file whenever a 
 |------|-------|--------|-------|
 | _(none yet)_ | | | |
 
-## Knowledge
+## Knowledge (docs/knowledge/)
 
 | File | Topic |
 |------|-------|
 | [README.md](../knowledge/README.md) | GitHub Actions runner requirements; hyphenated job ID expression syntax |
+
+## Knowledge (knowledge/ — OKF v0.1)
+
+| File | Topic |
+|------|-------|
+| [knowledge/index.md](../../knowledge/index.md) | Root navigation for OKF knowledge graph |
+| [knowledge/architecture/index.md](../../knowledge/architecture/index.md) | Architecture overview |
+| [knowledge/architecture/multi-tenant.md](../../knowledge/architecture/multi-tenant.md) | Multi-tenant design, schema, auth flow |
+| [knowledge/architecture/vps-constraints.md](../../knowledge/architecture/vps-constraints.md) | VPS resource budgets (4 vCPU, 8GB RAM) |
+| [knowledge/providers/index.md](../../knowledge/providers/index.md) | Provider catalog (Tier 1/2/3) |
+| [knowledge/providers/opencode-zen.md](../../knowledge/providers/opencode-zen.md) | OpenCode Zen adapter |
+| [knowledge/providers/antigravity.md](../../knowledge/providers/antigravity.md) | Antigravity/Gemini adapter |
+| [knowledge/providers/kilocode.md](../../knowledge/providers/kilocode.md) | KiloCode CLI adapter |
+| [knowledge/providers/nemotron.md](../../knowledge/providers/nemotron.md) | NVIDIA Nemotron/NIM adapter |
+| [knowledge/providers/openrouter-free.md](../../knowledge/providers/openrouter-free.md) | OpenRouter free tier adapter |
+| [knowledge/routers/index.md](../../knowledge/routers/index.md) | Community router overview |
+| [knowledge/routers/nine-router.md](../../knowledge/routers/nine-router.md) | 9Router integration |
+| [knowledge/routers/cli-relay.md](../../knowledge/routers/cli-relay.md) | CliRelay integration |
+| [knowledge/routers/cli-proxy-api.md](../../knowledge/routers/cli-proxy-api.md) | CLIProxyAPI integration |
+| [knowledge/routers/ai-client-2-api.md](../../knowledge/routers/ai-client-2-api.md) | AIClient2API integration |
+| [knowledge/models/free-models.md](../../knowledge/models/free-models.md) | Free model catalog |
+| [knowledge/models/model-routing.md](../../knowledge/models/model-routing.md) | Dynamic routing algorithm |
+| [knowledge/design/provider-settings.md](../../knowledge/design/provider-settings.md) | Provider settings UI wireframes |
+
+## Design Docs
+
+| File | Topic |
+|------|-------|
+| [ARCHITECTURE.md](../../ARCHITECTURE.md) | Full system architecture spec |
+| [AGENTS.md](../../AGENTS.md) | Agentic engineering guide |
 
 ## TODOs / Backlog
 
