@@ -30,9 +30,9 @@ export function createChatRouter(registry: AdapterRegistry, db?: Database): Rout
       maxTokens: typeof max_tokens === 'number' ? max_tokens : undefined,
     }
 
-    let adapter
+    let adapters
     try {
-      adapter = await orchestrator.route()
+      adapters = await orchestrator.route()
     } catch (e) {
       if (e instanceof NoAdapterAvailableError) {
         res.status(503).json({ error: (e as Error).message })
@@ -49,42 +49,59 @@ export function createChatRouter(registry: AdapterRegistry, db?: Database): Rout
       res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Connection', 'keep-alive')
       res.flushHeaders()
-      try {
-        for await (const chunk of adapter.chatCompletionStream(chatReq)) {
-          if (closed) break
-          res.write(`data: ${JSON.stringify(chunk)}\n\n`)
-        }
-        if (!closed) res.write('data: [DONE]\n\n')
-      } catch (e) {
-        if (!closed) res.write(`data: ${JSON.stringify({ error: e instanceof Error ? e.message : 'stream error' })}\n\n`)
-      } finally {
-        res.end()
-      }
-    } else {
-      const start = Date.now()
-      try {
-        const completion = await adapter.chatCompletion(chatReq)
-        const latencyMs = Date.now() - start
+
+      let succeeded = false
+      for (const adapter of adapters) {
+        if (closed) break
         try {
-          logUsage?.run(
-            req.tenant!.sub, adapter.id, completion.model ?? chatReq.model ?? 'unknown',
-            completion.usage.promptTokens, completion.usage.completionTokens,
-            latencyMs, 1,
-          )
-        } catch { /* non-critical — don't fail the response */ }
-        res.json({
-          id: completion.id,
-          object: 'chat.completion',
-          created: Math.floor(Date.now() / 1000),
-          model: completion.model ?? chatReq.model ?? 'unknown',
-          provider: completion.provider ?? adapter.id,
-          choices: completion.choices,
-          usage: completion.usage,
-        })
-      } catch (e) {
-        const latencyMs = Date.now() - start
-        try { logUsage?.run(req.tenant!.sub, adapter.id, chatReq.model ?? 'unknown', 0, 0, latencyMs, 0) } catch { /* */ }
-        res.status(500).json({ error: e instanceof Error ? e.message : 'completion failed' })
+          for await (const chunk of adapter.chatCompletionStream(chatReq)) {
+            if (closed) break
+            res.write(`data: ${JSON.stringify(chunk)}\n\n`)
+          }
+          orchestrator.recordSuccess(adapter.id)
+          succeeded = true
+          break
+        } catch (e) {
+          orchestrator.recordFailure(adapter.id)
+          if (adapter === adapters[adapters.length - 1]) {
+            if (!closed) res.write(`data: ${JSON.stringify({ error: e instanceof Error ? e.message : 'stream error' })}\n\n`)
+          }
+        }
+      }
+      if (!closed && succeeded) res.write('data: [DONE]\n\n')
+      res.end()
+    } else {
+      for (const adapter of adapters) {
+        const start = Date.now()
+        try {
+          const completion = await adapter.chatCompletion(chatReq)
+          const latencyMs = Date.now() - start
+          orchestrator.recordSuccess(adapter.id)
+          try {
+            logUsage?.run(
+              req.tenant!.sub, adapter.id, completion.model ?? chatReq.model ?? 'unknown',
+              completion.usage.promptTokens, completion.usage.completionTokens,
+              latencyMs, 1,
+            )
+          } catch { /* non-critical */ }
+          res.json({
+            id: completion.id,
+            object: 'chat.completion',
+            created: Math.floor(Date.now() / 1000),
+            model: completion.model ?? chatReq.model ?? 'unknown',
+            provider: completion.provider ?? adapter.id,
+            choices: completion.choices,
+            usage: completion.usage,
+          })
+          return
+        } catch (e) {
+          const latencyMs = Date.now() - start
+          orchestrator.recordFailure(adapter.id)
+          try { logUsage?.run(req.tenant!.sub, adapter.id, chatReq.model ?? 'unknown', 0, 0, latencyMs, 0) } catch { /* */ }
+          if (adapter === adapters[adapters.length - 1]) {
+            res.status(500).json({ error: e instanceof Error ? e.message : 'completion failed' })
+          }
+        }
       }
     }
   })
