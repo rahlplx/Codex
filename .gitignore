@@ -1,6 +1,7 @@
-# Telemetry JSONL files can grow large — ignore dated ones, keep .gitkeep
+# Telemetry JSONL files can grow large — ignore dated ones everywhere, keep .gitkeep
 logs/telemetry/*.jsonl
 logs/sessions/*.md
+backend/logs/
 
 # Keep structure markers
 !logs/telemetry/.gitkeep
