@@ -29,7 +29,7 @@ describe('Auth API', () => {
     it('registers a new user and returns token', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'new@test.com', password: 'pass123', displayName: 'New User' })
+        .send({ email: 'new@test.com', password: 'pass1234', displayName: 'New User' })
       expect(res.status).toBe(201)
       expect(res.body.token).toBeDefined()
       expect(res.body.user.email).toBe('new@test.com')
@@ -38,16 +38,16 @@ describe('Auth API', () => {
     it('first user gets admin role', async () => {
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'first@test.com', password: 'pass123', displayName: 'First' })
+        .send({ email: 'first@test.com', password: 'pass1234', displayName: 'First' })
       expect(res.body.user.role).toBe('admin')
     })
 
     it('second user gets user role', async () => {
       await request(app).post('/api/auth/register')
-        .send({ email: 'first@test.com', password: 'pass123', displayName: 'First' })
+        .send({ email: 'first@test.com', password: 'pass1234', displayName: 'First' })
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'second@test.com', password: 'pass123', displayName: 'Second' })
+        .send({ email: 'second@test.com', password: 'pass1234', displayName: 'Second' })
       expect(res.body.user.role).toBe('user')
     })
 
@@ -60,10 +60,10 @@ describe('Auth API', () => {
 
     it('returns 409 for duplicate email', async () => {
       await request(app).post('/api/auth/register')
-        .send({ email: 'dup@test.com', password: 'pass123', displayName: 'Dup' })
+        .send({ email: 'dup@test.com', password: 'pass1234', displayName: 'Dup' })
       const res = await request(app)
         .post('/api/auth/register')
-        .send({ email: 'dup@test.com', password: 'pass456', displayName: 'Dup2' })
+        .send({ email: 'dup@test.com', password: 'pass4567', displayName: 'Dup2' })
       expect(res.status).toBe(409)
     })
   })

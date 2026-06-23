@@ -37,6 +37,16 @@ export function createAuthRouter(db: Database): Router {
         return
       }
 
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ error: 'Invalid email format' })
+        return
+      }
+
+      if (password.length < 8) {
+        res.status(400).json({ error: 'Password must be at least 8 characters' })
+        return
+      }
+
       const existing = db.prepare('SELECT id FROM tenants WHERE email = ?').get(email)
       if (existing) {
         res.status(409).json({ error: 'Email already registered' })

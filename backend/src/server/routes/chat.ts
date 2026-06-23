@@ -22,6 +22,18 @@ export function createChatRouter(registry: AdapterRegistry, db?: Database): Rout
       return
     }
 
+    const validRoles = new Set(['system', 'user', 'assistant', 'tool'])
+    const messagesValid = messages.every(
+      (m: unknown) => typeof m === 'object' && m !== null &&
+        typeof (m as Record<string, unknown>)['role'] === 'string' &&
+        validRoles.has((m as Record<string, unknown>)['role'] as string) &&
+        typeof (m as Record<string, unknown>)['content'] === 'string'
+    )
+    if (!messagesValid) {
+      res.status(400).json({ error: 'Each message must have a valid role and content string' })
+      return
+    }
+
     const chatReq: ChatCompletionRequest = {
       model: typeof model === 'string' ? model : undefined,
       messages: messages as ChatCompletionRequest['messages'],
