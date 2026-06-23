@@ -1,5 +1,5 @@
-import type { ICliAdapter } from '../types/adapter'
-import type { AdapterRegistry } from '../adapters/registry'
+import type { ICliAdapter } from '../types/adapter.js'
+import type { AdapterRegistry } from '../adapters/registry.js'
 
 export class NoAdapterAvailableError extends Error {
   constructor() {

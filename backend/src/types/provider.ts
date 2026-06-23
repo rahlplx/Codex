@@ -1,4 +1,4 @@
-import type { Tier, HealthStatus, QuotaStatus, Model } from './adapter'
+import type { Tier, HealthStatus, QuotaStatus, Model } from './adapter.js'
 
 export interface Provider {
   id: string

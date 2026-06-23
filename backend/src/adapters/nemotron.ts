@@ -1,8 +1,8 @@
-import { AdapterBase } from './base'
+import { AdapterBase } from './base.js'
 import type {
   HealthStatus, QuotaStatus, Model,
   ChatCompletionRequest, ChatCompletionResponse, ChatCompletionChunk
-} from '../types/adapter'
+} from '../types/adapter.js'
 
 export class NemotronAdapter extends AdapterBase {
   readonly id = 'nemotron'

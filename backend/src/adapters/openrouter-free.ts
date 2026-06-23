@@ -1,8 +1,8 @@
-import { AdapterBase } from './base'
+import { AdapterBase } from './base.js'
 import type {
   HealthStatus, QuotaStatus, Model,
   ChatCompletionRequest, ChatCompletionResponse, ChatCompletionChunk
-} from '../types/adapter'
+} from '../types/adapter.js'
 
 const FREE_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',

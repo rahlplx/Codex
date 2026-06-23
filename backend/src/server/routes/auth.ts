@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import crypto from 'node:crypto'
 import type { Database } from 'better-sqlite3'
-import { hashPassword, verifyPassword } from '../../auth/password'
-import { generateToken } from '../../auth/jwt'
+import { hashPassword, verifyPassword } from '../../auth/password.js'
+import { generateToken } from '../../auth/jwt.js'
 
 export function createAuthRouter(db: Database): Router {
   const router = Router()

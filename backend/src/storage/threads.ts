@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { Database } from 'better-sqlite3'
-import type { Thread } from '../types/thread'
+import type { Thread } from '../types/thread.js'
 
 interface ThreadRow {
   id: string

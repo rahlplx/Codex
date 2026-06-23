@@ -1,10 +1,10 @@
-import { createApp } from './server/httpServer'
-import { loadConfig } from './types/config'
-import { AdapterRegistry } from './adapters/registry'
-import { OpenCodeZenAdapter } from './adapters/opencode-zen'
-import { NemotronAdapter } from './adapters/nemotron'
-import { OpenRouterFreeAdapter } from './adapters/openrouter-free'
-import { openDatabase } from './storage/database'
+import { createApp } from './server/httpServer.js'
+import { loadConfig } from './types/config.js'
+import { AdapterRegistry } from './adapters/registry.js'
+import { OpenCodeZenAdapter } from './adapters/opencode-zen.js'
+import { NemotronAdapter } from './adapters/nemotron.js'
+import { OpenRouterFreeAdapter } from './adapters/openrouter-free.js'
+import { openDatabase } from './storage/database.js'
 
 const config = loadConfig()
 

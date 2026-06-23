@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
-import { verifyToken, type JwtPayload } from './jwt'
+import { verifyToken, type JwtPayload } from './jwt.js'
 
 declare global {
   namespace Express {

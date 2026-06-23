@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import type { AdapterRegistry } from '../../adapters/registry'
+import type { AdapterRegistry } from '../../adapters/registry.js'
 
 export function createModelsRouter(registry: AdapterRegistry): Router {
   const router = Router()

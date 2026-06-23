@@ -12,7 +12,7 @@ export interface Message {
   threadId: string
   role: 'system' | 'user' | 'assistant'
   content: string
-  providerId?: string
-  modelId?: string
+  providerId?: string | undefined
+  modelId?: string | undefined
   ts: Date
 }
