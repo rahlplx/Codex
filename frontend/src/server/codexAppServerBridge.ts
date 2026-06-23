@@ -40,6 +40,7 @@ import {
 import { handleOpenRouterProxyRequest } from './openRouterProxy.js'
 import { handleZenProxyRequest } from './zenProxy.js'
 import { handleCustomEndpointProxyRequest } from './customEndpointProxy.js'
+import { handleCodexBackendProxyRequest } from './codexBackendProxy.js'
 import { ThreadTerminalManager } from './terminalManager.js'
 import { getSpawnInvocation } from '../utils/commandInvocation.js'
 import {
@@ -7564,6 +7565,11 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
         return
       }
 
+      if (url.pathname.startsWith('/codex-api/codex-backend-proxy/')) {
+        handleCodexBackendProxyRequest(req, res)
+        return
+      }
+
       if (url.pathname.startsWith('/codex-api/free-mode')) {
         const statePath = join(getCodexHomeDir(), FREE_MODE_STATE_FILE)
 
@@ -8455,6 +8461,28 @@ export function createCodexBridgeMiddleware(): CodexBridgeMiddleware {
                 // Custom endpoint model fetch failed — return empty list
               }
               setJson(res, 200, { data: [], exclusive: true, source: 'custom' })
+              return
+            }
+            if (fmState.provider === 'codex-backend') {
+              const backendUrl = (process.env['CODEX_BACKEND_URL'] ?? 'http://localhost:3001').replace(/\/$/, '')
+              try {
+                const resp = await fetch(`${backendUrl}/api/models`, { signal: AbortSignal.timeout(8000) })
+                if (resp.ok) {
+                  const json = await resp.json() as unknown
+                  const ids = normalizeProviderModelsData(json)
+                  if (ids.length > 0) {
+                    const currentModel = fmState.model?.trim() ?? ''
+                    const orderedIds = currentModel && ids.includes(currentModel)
+                      ? [currentModel, ...ids.filter((id) => id !== currentModel)]
+                      : ids
+                    setJson(res, 200, { data: orderedIds, exclusive: true, source: 'codex-backend' })
+                    return
+                  }
+                }
+              } catch {
+                // Codex backend model fetch failed
+              }
+              setJson(res, 200, { data: [], exclusive: true, source: 'codex-backend' })
               return
             }
             const freeModels = await getFreeModels()
