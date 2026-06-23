@@ -36,32 +36,35 @@ async function runOnce(): Promise<{ allPassed: boolean; results: ScenarioGroupRe
     }
   }
 
-  // auth must run first — all other scenarios need the tokens it returns
-  let authCtx: Awaited<ReturnType<typeof runAuthScenarios>> | null = null
-  await runGroup('auth', async () => {
-    authCtx = await runAuthScenarios(http)
-  })
+  try {
+    // auth must run first — all other scenarios need the tokens it returns
+    let authCtx: Awaited<ReturnType<typeof runAuthScenarios>> | null = null
+    await runGroup('auth', async () => {
+      authCtx = await runAuthScenarios(http)
+    })
 
-  if (authCtx) {
-    const { adminToken, adminId, userToken, userId } = authCtx
-    await runGroup('providers', () => runProviderScenarios(http))
-    await runGroup('chat', () => runChatScenarios(http, mock))
-    await runGroup('routing', () => runRoutingScenarios(http, adminToken))
-    await runGroup('threads', () => runThreadScenarios(http, adminToken, userToken))
-    await runGroup('telemetry', () => runTelemetryScenarios(http, adminToken))
-    // admin deletes userId at the end — must run after threads (ownership tests need userId alive)
-    await runGroup('admin', () => runAdminScenarios(http, adminToken, adminId, userId))
-    // errors runs last — avoids rate limiter interference with auth tests
-    await runGroup('errors', () => runErrorScenarios(http, adminToken))
-  } else {
-    const skipped: string[] = ['providers', 'chat', 'routing', 'threads', 'telemetry', 'admin', 'errors']
-    for (const name of skipped) {
-      groupResults.push({ name, status: 'fail', error: 'Skipped: auth group failed', durationMs: 0 })
-      console.log(`  ⏭  ${name} (skipped)`)
+    if (authCtx) {
+      const { adminToken, adminId, userToken, userId } = authCtx
+      await runGroup('providers', () => runProviderScenarios(http))
+      await runGroup('chat', () => runChatScenarios(http, mock))
+      await runGroup('routing', () => runRoutingScenarios(http, adminToken))
+      await runGroup('threads', () => runThreadScenarios(http, adminToken, userToken))
+      await runGroup('telemetry', () => runTelemetryScenarios(http, adminToken))
+      // admin deletes userId at the end — must run after threads (ownership tests need userId alive)
+      await runGroup('admin', () => runAdminScenarios(http, adminToken, adminId, userId))
+      // errors runs last — avoids rate limiter interference with auth tests
+      await runGroup('errors', () => runErrorScenarios(http, adminToken))
+    } else {
+      const skipped: string[] = ['providers', 'chat', 'routing', 'threads', 'telemetry', 'admin', 'errors']
+      for (const name of skipped) {
+        groupResults.push({ name, status: 'fail', error: 'Skipped: auth group failed', durationMs: 0 })
+        console.log(`  ⏭  ${name} (skipped)`)
+      }
     }
+  } finally {
+    await stopSimServer(sim)
   }
 
-  await stopSimServer(sim)
   return {
     allPassed: groupResults.every(r => r.status === 'pass'),
     results: groupResults,

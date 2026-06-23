@@ -65,8 +65,10 @@ export function createAuthRouter(db: Database): Router {
         return
       }
 
-      const { email, password, displayName } = req.body as { email?: string; password?: string; displayName?: string }
-      if (!email || !password || !displayName) {
+      const { email, password, displayName } = req.body as Record<string, unknown>
+      if (typeof email !== 'string' || !email ||
+          typeof password !== 'string' || !password ||
+          typeof displayName !== 'string' || !displayName) {
         res.status(400).json({ error: 'email, password, and displayName required' })
         return
       }
