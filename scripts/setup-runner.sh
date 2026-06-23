@@ -17,11 +17,24 @@ REPO="Codex"
 RUNNER_DIR="${HOME}/actions-runner"
 RUNNER_VERSION="2.325.0"
 
+# --- Check dependencies ---
+for cmd in curl tar python3; do
+  if ! command -v "$cmd" &>/dev/null; then
+    echo "ERROR: Required command '$cmd' is not installed." >&2
+    exit 1
+  fi
+done
+
 # --- Parse args ---
 TOKEN="${GITHUB_TOKEN:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --token) TOKEN="$2"; shift 2 ;;
+    --token)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --token requires an argument" >&2
+        exit 1
+      fi
+      TOKEN="$2"; shift 2 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -45,6 +58,9 @@ echo ""
 
 # --- Detect OS/arch ---
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+if [[ "$OS" == "darwin" ]]; then
+  OS="osx"
+fi
 ARCH=$(uname -m)
 case "$ARCH" in
   x86_64)  ARCH="x64" ;;
@@ -97,7 +113,7 @@ if command -v systemctl &>/dev/null; then
   echo "Runner installed and started as systemd service."
   echo "  Status:  sudo systemctl status actions.runner.${OWNER}-${REPO}.$(hostname)-runner"
   echo "  Logs:    sudo journalctl -u actions.runner.${OWNER}-${REPO}.$(hostname)-runner -f"
-elif [[ "$OS" == "darwin" ]]; then
+elif [[ "$OS" == "osx" ]]; then
   echo "Installing as launchd service..."
   ./svc.sh install
   ./svc.sh start
