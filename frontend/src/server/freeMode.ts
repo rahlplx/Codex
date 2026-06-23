@@ -152,8 +152,10 @@ export const FREE_MODE_STATE_FILE = 'webui-custom-providers.json'
 
 export const CUSTOM_PROVIDER_ID = 'custom-endpoint'
 export const OPENCODE_ZEN_PROVIDER_ID = 'opencode-zen'
+export const CODEX_BACKEND_PROVIDER_ID = 'codex-backend'
 const CUSTOM_RUNTIME_PROVIDER_ID = 'custom_endpoint'
 const OPENCODE_ZEN_RUNTIME_PROVIDER_ID = 'opencode_zen'
+const CODEX_BACKEND_RUNTIME_PROVIDER_ID = 'codex_backend'
 export const OPENCODE_ZEN_BASE_URL = 'https://opencode.ai/zen/v1'
 export const OPENCODE_ZEN_DEFAULT_MODEL = 'big-pickle'
 
@@ -164,7 +166,7 @@ export interface FreeModeState {
   apiKey: string | null
   model: string
   customKey?: boolean
-  provider?: 'openrouter' | 'custom' | 'opencode-zen'
+  provider?: 'openrouter' | 'custom' | 'opencode-zen' | 'codex-backend'
   customBaseUrl?: string
   wireApi?: WireApi
   providerKeys?: Record<string, string>
@@ -198,6 +200,18 @@ export function createDefaultOpenCodeZenFreeModeState(): FreeModeState {
   }
 }
 
+export function createDefaultCodexBackendFreeModeState(model: string): FreeModeState {
+  return {
+    enabled: true,
+    apiKey: null,
+    model,
+    customKey: false,
+    provider: 'codex-backend',
+    wireApi: 'chat',
+    providerKeys: {},
+  }
+}
+
 export function shouldCreateDefaultFreeModeStateForMissingAuth(
   current: FreeModeState | null,
   hasUsableCodexAuth: boolean,
@@ -211,6 +225,7 @@ export function shouldSuppressCommunityFreeModeForCodexAuth(
 ): boolean {
   if (!hasUsableCodexAuth || !current?.enabled) return false
   if (current.provider === 'custom') return false
+  if (current.provider === 'codex-backend') return false
   if (current.customKey === true) return false
   if (current.provider === 'opencode-zen' && current.apiKey?.trim()) return false
   return current.provider === 'openrouter' || current.provider === 'opencode-zen' || !current.provider
@@ -273,6 +288,23 @@ export function getFreeModeConfigArgs(state: FreeModeState, serverPort?: number)
       '-c', `model="${model}"`,
       '-c', `model_provider="${OPENCODE_ZEN_RUNTIME_PROVIDER_ID}"`,
       ...getOpenCodeZenProviderConfigArgs(serverPort),
+    ]
+  }
+
+  if (state.provider === 'codex-backend') {
+    const model = state.model?.trim()
+    const providerConfigKey = `model_providers.${CODEX_BACKEND_RUNTIME_PROVIDER_ID}`
+    const baseUrl = serverPort
+      ? `http://127.0.0.1:${serverPort}/codex-api/codex-backend-proxy/v1`
+      : (process.env['CODEX_BACKEND_URL'] ?? 'http://localhost:3001').replace(/\/$/, '') + '/api'
+    const modelArgs: string[] = model ? ['-c', `model="${model}"`] : []
+    return [
+      ...modelArgs,
+      '-c', `model_provider="${CODEX_BACKEND_RUNTIME_PROVIDER_ID}"`,
+      '-c', `${providerConfigKey}.name="Codex Backend"`,
+      '-c', `${providerConfigKey}.base_url="${baseUrl}"`,
+      '-c', `${providerConfigKey}.wire_api="chat"`,
+      '-c', `${providerConfigKey}.experimental_bearer_token="codex-backend-proxy-token"`,
     ]
   }
 
