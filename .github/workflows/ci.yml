@@ -21,8 +21,8 @@ jobs:
     needs: lint
     steps:
       - uses: actions/checkout@v4
-      - name: Unit tests placeholder
-        run: echo "No test runner configured yet. Add one via docs/todos/BACKLOG.md"
+      - name: Run unit test harness
+        run: bash tests/unit/harness.sh
 
   integration-tests:
     name: Integration Tests
