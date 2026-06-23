@@ -9,7 +9,7 @@ on:
 jobs:
   lint:
     name: Lint
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Lint placeholder
@@ -17,7 +17,7 @@ jobs:
 
   unit-tests:
     name: Unit Tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: lint
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +35,7 @@ jobs:
 
   e2e-tests:
     name: E2E Tests
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: integration-tests
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +44,7 @@ jobs:
 
   telemetry:
     name: Telemetry Push
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [lint, unit-tests, integration-tests, e2e-tests]
     if: ${{ always() }}
     steps:
