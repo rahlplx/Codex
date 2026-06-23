@@ -1,12 +1,18 @@
 import { Router } from 'express'
+import type { Database } from 'better-sqlite3'
 import type { AdapterRegistry } from '../../adapters/registry.js'
 import { Router as OrchestratorRouter, NoAdapterAvailableError } from '../../orchestrator/router.js'
 import type { ChatCompletionRequest } from '../../types/adapter.js'
 import { authGuard } from '../../auth/middleware.js'
 
-export function createChatRouter(registry: AdapterRegistry): Router {
+export function createChatRouter(registry: AdapterRegistry, db?: Database): Router {
   const router = Router()
   const orchestrator = new OrchestratorRouter(registry)
+
+  const logUsage = db?.prepare(`
+    INSERT INTO usage_log (tenant_id, provider, model, tokens_in, tokens_out, latency_ms, success)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
 
   router.post('/api/chat/completions', authGuard, async (req, res) => {
     const { messages, model, stream, temperature, max_tokens } = req.body as Record<string, unknown>
@@ -55,8 +61,17 @@ export function createChatRouter(registry: AdapterRegistry): Router {
         res.end()
       }
     } else {
+      const start = Date.now()
       try {
         const completion = await adapter.chatCompletion(chatReq)
+        const latencyMs = Date.now() - start
+        try {
+          logUsage?.run(
+            req.tenant!.sub, adapter.id, completion.model ?? chatReq.model ?? 'unknown',
+            completion.usage.promptTokens, completion.usage.completionTokens,
+            latencyMs, 1,
+          )
+        } catch { /* non-critical — don't fail the response */ }
         res.json({
           id: completion.id,
           object: 'chat.completion',
@@ -67,6 +82,8 @@ export function createChatRouter(registry: AdapterRegistry): Router {
           usage: completion.usage,
         })
       } catch (e) {
+        const latencyMs = Date.now() - start
+        try { logUsage?.run(req.tenant!.sub, adapter.id, chatReq.model ?? 'unknown', 0, 0, latencyMs, 0) } catch { /* */ }
         res.status(500).json({ error: e instanceof Error ? e.message : 'completion failed' })
       }
     }

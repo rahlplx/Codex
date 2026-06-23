@@ -45,7 +45,7 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   app.use(createHealthRouter(db))
   app.use(createProvidersRouter(reg))
   app.use(createModelsRouter(reg))
-  app.use(createChatRouter(reg))
+  app.use(createChatRouter(reg, db))
   if (db) {
     app.use(createThreadsRouter(db))
     app.use(createAuthRouter(db))

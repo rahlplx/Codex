@@ -116,13 +116,13 @@ describe('OpenCodeZenAdapter — healthCheck', () => {
     expect(status.healthy).toBe(true)
     expect(status.latencyMs).toBeGreaterThanOrEqual(0)
     expect(status.score).toBeGreaterThan(0)
-    expect(status.score).toBeLessThanOrEqual(1)
+    expect(status.score).toBeLessThanOrEqual(100)
   })
 
   it('score is 1 for near-instant response', async () => {
     const status = await adapter.healthCheck()
-    // With static models, latency ≈ 0 → score should be very close to 1
-    expect(status.score).toBeGreaterThan(0.99)
+    // With static models, latency ≈ 0 → score should be very close to 100
+    expect(status.score).toBeGreaterThan(99)
   })
 })
 

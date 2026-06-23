@@ -58,7 +58,7 @@ jobs:
       - name: Install backend dependencies
         run: cd backend && npm ci
       - name: Run integration tests
-        run: cd backend && npx vitest run --config vitest.config.ts -- ../tests/integration/ || echo "No integration tests found"
+        run: cd backend && npx vitest run --config vitest.config.ts -- ../tests/integration/
 
   e2e-tests:
     name: E2E Tests

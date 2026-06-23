@@ -43,8 +43,7 @@ export class OpenCodeZenAdapter extends AdapterBase {
       return {
         healthy,
         latencyMs,
-        // Score degrades linearly: 0ms → 1.0, 10 000ms → 0
-        score: healthy ? Math.max(0, 1 - latencyMs / 10_000) : 0,
+        score: healthy ? Math.max(0, 100 - (latencyMs / 100)) : 0,
       }
     } catch (e) {
       return {
