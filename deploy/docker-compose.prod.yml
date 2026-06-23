@@ -1,14 +1,35 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      - frontend-dist:/srv:ro
+    environment:
+      - CODEX_DOMAIN=${CODEX_DOMAIN:-localhost}
+    depends_on:
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    restart: unless-stopped
+
   backend:
     build:
-      context: ./backend
+      context: ../backend
       dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
     environment:
       - PORT=3001
       - DATABASE_PATH=/data/codex.db
-      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - JWT_SECRET=${JWT_SECRET}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_USER_IDS=${TELEGRAM_ALLOWED_USER_IDS:-}
     volumes:
       - codex-data:/data
     healthcheck:
@@ -22,25 +43,16 @@ services:
           memory: 1536M
     restart: unless-stopped
 
-  frontend:
+  frontend-build:
     build:
-      context: ./frontend
+      context: ../frontend
       dockerfile: Dockerfile
-    ports:
-      - "80:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-    restart: unless-stopped
+    volumes:
+      - frontend-dist:/dist
+    entrypoint: ["sh", "-c", "cp -r /usr/share/nginx/html/* /dist/"]
 
   nine-router:
     image: ghcr.io/decolua/9router:latest
-    ports:
-      - "20128:20128"
     profiles:
       - routers
     deploy:
@@ -51,8 +63,6 @@ services:
 
   cli-relay:
     image: ghcr.io/kittors/clirelay:latest
-    ports:
-      - "3456:3456"
     profiles:
       - routers
     deploy:
@@ -63,8 +73,6 @@ services:
 
   cli-proxy-api:
     image: ghcr.io/router-for-me/cliproxyapi:latest
-    ports:
-      - "8080:8080"
     profiles:
       - routers
     deploy:
@@ -75,8 +83,6 @@ services:
 
   ai-client2api:
     image: ghcr.io/justlovemaki/aiclient2api:latest
-    ports:
-      - "3100:3100"
     profiles:
       - routers
     deploy:
@@ -87,3 +93,6 @@ services:
 
 volumes:
   codex-data:
+  caddy-data:
+  caddy-config:
+  frontend-dist:

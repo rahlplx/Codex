@@ -1,0 +1,48 @@
+{
+	admin off
+}
+
+{$CODEX_DOMAIN:localhost} {
+	# API requests → backend
+	handle /api/* {
+		reverse_proxy backend:3001 {
+			flush_interval -1
+			transport http {
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+
+	# WebSocket upgrade for SSE streaming
+	handle /api/chat/completions {
+		reverse_proxy backend:3001 {
+			flush_interval -1
+			header_up Connection {>Connection}
+			header_up Upgrade {>Upgrade}
+		}
+	}
+
+	# Frontend SPA
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Compression
+	encode gzip zstd
+
+	log {
+		output stdout
+		format console
+	}
+}

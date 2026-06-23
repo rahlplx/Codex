@@ -139,3 +139,129 @@ describe('KiloCodeAdapter — chatCompletion', () => {
     })).rejects.toThrow('500')
   })
 })
+
+describe('KiloCodeAdapter — healthCheck', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('returns healthy when server responds ok', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }))
+    const adapter = new KiloCodeAdapter()
+    const health = await adapter.healthCheck()
+    expect(health.healthy).toBe(true)
+    expect(health.score).toBe(75)
+  })
+
+  it('returns unhealthy when server responds not ok', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }))
+    const adapter = new KiloCodeAdapter()
+    const health = await adapter.healthCheck()
+    expect(health.healthy).toBe(false)
+    expect(health.score).toBe(0)
+  })
+
+  it('returns unhealthy on network error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
+    const adapter = new KiloCodeAdapter()
+    const health = await adapter.healthCheck()
+    expect(health.healthy).toBe(false)
+    expect(health.error).toContain('network down')
+  })
+})
+
+describe('KiloCodeAdapter — chatCompletionStream', () => {
+  let adapter: KiloCodeAdapter
+
+  beforeEach(async () => {
+    adapter = new KiloCodeAdapter()
+    await adapter.initialize({ apiKey: 'test-key' })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function makeSSEStream(lines: string[]): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder()
+    const data = lines.join('\n') + '\n'
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(data))
+        controller.close()
+      },
+    })
+  }
+
+  it('yields chunks from SSE stream', async () => {
+    const chunk = { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: 'Hi' }, finishReason: null }] }
+    const body = makeSSEStream([`data: ${JSON.stringify(chunk)}`])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const c of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hello' }] })) {
+      chunks.push(c)
+    }
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].choices[0].delta.content).toBe('Hi')
+  })
+
+  it('returns on [DONE] signal', async () => {
+    const chunk1 = { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: 'A' }, finishReason: null }] }
+    const chunk2 = { id: 'c2', choices: [{ index: 0, delta: { role: 'assistant', content: 'B' }, finishReason: null }] }
+    const body = makeSSEStream([
+      `data: ${JSON.stringify(chunk1)}`,
+      'data: [DONE]',
+      `data: ${JSON.stringify(chunk2)}`,
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const c of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hello' }] })) {
+      chunks.push(c)
+    }
+    expect(chunks).toHaveLength(1)
+  })
+
+  it('throws on HTTP error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 502, body: null }))
+
+    const gen = adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })
+    await expect((async () => { for await (const _ of gen) {} })()).rejects.toThrow('502')
+  })
+
+  it('skips non-data lines', async () => {
+    const chunk = { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: 'X' }, finishReason: null }] }
+    const body = makeSSEStream([
+      ': comment',
+      'event: message',
+      `data: ${JSON.stringify(chunk)}`,
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const c of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hello' }] })) {
+      chunks.push(c)
+    }
+    expect(chunks).toHaveLength(1)
+  })
+
+  it('handles \\r line endings', async () => {
+    const chunk = { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: 'Y' }, finishReason: null }] }
+    const encoder = new TextEncoder()
+    const data = `data: ${JSON.stringify(chunk)}\r\n`
+    const body = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(data))
+        controller.close()
+      },
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const c of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hello' }] })) {
+      chunks.push(c)
+    }
+    expect(chunks).toHaveLength(1)
+  })
+})

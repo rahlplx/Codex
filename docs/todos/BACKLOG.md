@@ -6,16 +6,16 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
-| P0 | Fix ci.yml for self-hosted runner (bracket notation) | DevOps | CI |
+| ~~P0~~ | ~~Fix ci.yml for self-hosted runner (bracket notation)~~ | ~~DevOps~~ | ~~CI~~ |
 | P1 | ~~Build Antigravity CLI adapter (OAuth flow)~~ | ~~Engineer~~ | ~~Backend~~ |
 | P1 | ~~Build KiloCode adapter~~ | ~~Engineer~~ | ~~Backend~~ |
 | P1 | ~~Implement dynamic model discovery scanner (hourly)~~ | ~~Engineer~~ | ~~Backend~~ |
-| P2 | 9Router sidecar integration | Engineer | Backend |
-| P2 | CliRelay sidecar integration | Engineer | Backend |
-| P2 | Telegram bot bridge (port from codex-mobile) | Engineer | Feature |
-| P3 | Caddy/Traefik reverse proxy setup | DevOps | Deploy |
-| P3 | CLIProxyAPI + AIClient2API sidecar integration | Engineer | Backend |
-| P3 | E2E tests (Playwright) | Engineer | Testing |
+| ~~P2~~ | ~~9Router sidecar integration~~ | ~~Engineer~~ | ~~Backend~~ |
+| ~~P2~~ | ~~CliRelay sidecar integration~~ | ~~Engineer~~ | ~~Backend~~ |
+| ~~P2~~ | ~~Telegram bot bridge (port from codex-mobile)~~ | ~~Engineer~~ | ~~Feature~~ |
+| ~~P3~~ | ~~Caddy/Traefik reverse proxy setup~~ | ~~DevOps~~ | ~~Deploy~~ |
+| ~~P3~~ | ~~CLIProxyAPI + AIClient2API sidecar integration~~ | ~~Engineer~~ | ~~Backend~~ |
+| ~~P3~~ | ~~E2E tests (Playwright)~~ | ~~Engineer~~ | ~~Testing~~ |
 
 ## Done
 
@@ -77,3 +77,17 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Implement ModelDiscoveryScanner with hourly scan + 12 tests |
 | 2026-06-23 | Wire new adapters + scanner into server index |
 | 2026-06-23 | Evolve harness to 121 assertions (Loops 19-20) |
+| 2026-06-23 | Resolve all 9 Gemini review findings on PR #11 |
+| 2026-06-23 | Add comprehensive test coverage (jwt, password, middleware, threads, admin, auth, telemetry, models, providers) |
+| 2026-06-23 | Add streaming tests for Antigravity + KiloCode adapters |
+| 2026-06-23 | Build 9Router sidecar adapter + Docker Compose profile |
+| 2026-06-23 | Build CliRelay sidecar adapter + Docker Compose profile |
+| 2026-06-23 | Build CLIProxyAPI sidecar adapter + Docker Compose profile |
+| 2026-06-23 | Build AIClient2API sidecar adapter + Docker Compose profile |
+| 2026-06-23 | Build SidecarAdapter base class (shared OpenAI-compatible protocol) |
+| 2026-06-23 | Build Telegram bot bridge with thread integration |
+| 2026-06-23 | Coverage boost: 82% → 92.5% lines, 84% → 92% functions |
+| 2026-06-23 | Fix CI pipeline: ubuntu-latest, Node 22, tsc + vitest + coverage |
+| 2026-06-23 | Add Caddy reverse proxy config (deploy/Caddyfile) + production docker-compose |
+| 2026-06-23 | Add Playwright E2E test suite (health, auth, threads CRUD, chat completions) |
+| 2026-06-23 | Resolve all 9 Gemini review findings on PR #12 |

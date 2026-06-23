@@ -145,4 +145,103 @@ describe('AntigravityAdapter — chatCompletion', () => {
     expect(body.systemInstruction.parts[0].text).toBe('You are helpful')
     expect(body.contents).toHaveLength(1)
   })
+
+  it('throws when no API key configured', async () => {
+    const noKeyAdapter = new AntigravityAdapter()
+    await expect(noKeyAdapter.chatCompletion({
+      messages: [{ role: 'user', content: 'Hi' }],
+    })).rejects.toThrow('API key is not configured')
+  })
+})
+
+describe('AntigravityAdapter — chatCompletionStream', () => {
+  let adapter: AntigravityAdapter
+
+  beforeEach(async () => {
+    adapter = new AntigravityAdapter()
+    await adapter.initialize({ apiKey: 'test-key' })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function makeSSEStream(events: string[]): ReadableStream<Uint8Array> {
+    const encoder = new TextEncoder()
+    const data = events.join('\n') + '\n'
+    return new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(data))
+        controller.close()
+      },
+    })
+  }
+
+  it('yields chunks from SSE stream', async () => {
+    const body = makeSSEStream([
+      'data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]},"finishReason":"STOP"}]}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const chunk of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })) {
+      chunks.push(chunk)
+    }
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0].choices[0].delta.content).toBe('Hello')
+  })
+
+  it('stops on [DONE] signal', async () => {
+    const body = makeSSEStream([
+      'data: {"candidates":[{"content":{"parts":[{"text":"A"}]},"finishReason":"STOP"}]}',
+      'data: [DONE]',
+      'data: {"candidates":[{"content":{"parts":[{"text":"B"}]},"finishReason":"STOP"}]}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const chunk of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })) {
+      chunks.push(chunk)
+    }
+    expect(chunks).toHaveLength(1)
+  })
+
+  it('throws on HTTP error', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500, body: null }))
+
+    const gen = adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })
+    await expect((async () => { for await (const _ of gen) {} })()).rejects.toThrow('500')
+  })
+
+  it('throws when no API key configured', async () => {
+    const noKeyAdapter = new AntigravityAdapter()
+    const gen = noKeyAdapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })
+    await expect((async () => { for await (const _ of gen) {} })()).rejects.toThrow('API key is not configured')
+  })
+
+  it('sets finishReason to stop for STOP', async () => {
+    const body = makeSSEStream([
+      'data: {"candidates":[{"content":{"parts":[{"text":"done"}]},"finishReason":"STOP"}]}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const chunk of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })) {
+      chunks.push(chunk)
+    }
+    expect(chunks[0].choices[0].finishReason).toBe('stop')
+  })
+
+  it('sets finishReason to null for non-STOP', async () => {
+    const body = makeSSEStream([
+      'data: {"candidates":[{"content":{"parts":[{"text":"partial"}]},"finishReason":"MAX_TOKENS"}]}',
+    ])
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, body }))
+
+    const chunks: any[] = []
+    for await (const chunk of adapter.chatCompletionStream({ messages: [{ role: 'user', content: 'Hi' }] })) {
+      chunks.push(chunk)
+    }
+    expect(chunks[0].choices[0].finishReason).toBeNull()
+  })
 })
