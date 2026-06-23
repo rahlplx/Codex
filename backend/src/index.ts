@@ -6,6 +6,10 @@ import { NemotronAdapter } from './adapters/nemotron.js'
 import { OpenRouterFreeAdapter } from './adapters/openrouter-free.js'
 import { AntigravityAdapter } from './adapters/antigravity.js'
 import { KiloCodeAdapter } from './adapters/kilocode.js'
+import { NineRouterAdapter } from './adapters/nine-router.js'
+import { CliRelayAdapter } from './adapters/cli-relay.js'
+import { CliProxyApiAdapter } from './adapters/cli-proxy-api.js'
+import { AiClient2ApiAdapter } from './adapters/ai-client2api.js'
 import { openDatabase } from './storage/database.js'
 import { ModelDiscoveryScanner } from './discovery/scanner.js'
 
@@ -32,6 +36,22 @@ registry.register(antigravity)
 const kilocode = new KiloCodeAdapter()
 kilocode.initialize({ apiKey: config.providers['kilocode']?.apiKey }).catch(console.error)
 registry.register(kilocode)
+
+const nineRouter = new NineRouterAdapter()
+nineRouter.initialize({ baseUrl: config.providers['nine-router']?.baseUrl }).catch(console.error)
+registry.register(nineRouter)
+
+const cliRelay = new CliRelayAdapter()
+cliRelay.initialize({ baseUrl: config.providers['cli-relay']?.baseUrl }).catch(console.error)
+registry.register(cliRelay)
+
+const cliProxyApi = new CliProxyApiAdapter()
+cliProxyApi.initialize({ baseUrl: config.providers['cli-proxy-api']?.baseUrl }).catch(console.error)
+registry.register(cliProxyApi)
+
+const aiClient2Api = new AiClient2ApiAdapter()
+aiClient2Api.initialize({ baseUrl: config.providers['ai-client2api']?.baseUrl }).catch(console.error)
+registry.register(aiClient2Api)
 
 const db = openDatabase(config.databasePath)
 

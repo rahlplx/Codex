@@ -37,5 +37,53 @@ services:
           memory: 128M
     restart: unless-stopped
 
+  nine-router:
+    image: ghcr.io/decolua/9router:latest
+    ports:
+      - "20128:20128"
+    profiles:
+      - routers
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  cli-relay:
+    image: ghcr.io/kittors/clirelay:latest
+    ports:
+      - "3456:3456"
+    profiles:
+      - routers
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  cli-proxy-api:
+    image: ghcr.io/router-for-me/cliproxyapi:latest
+    ports:
+      - "8080:8080"
+    profiles:
+      - routers
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
+  ai-client2api:
+    image: ghcr.io/justlovemaki/aiclient2api:latest
+    ports:
+      - "3100:3100"
+    profiles:
+      - routers
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    restart: unless-stopped
+
 volumes:
   codex-data:
