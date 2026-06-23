@@ -53,12 +53,14 @@ export function createChatRouter(registry: AdapterRegistry): Router {
       }
     } else {
       try {
+        let timer: ReturnType<typeof setTimeout> | undefined
         const completion = await Promise.race([
           adapter.chatCompletion(chatReq),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('Request timed out')), 30_000)
-          ),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('Request timed out')), 30_000)
+          }),
         ])
+        if (timer) clearTimeout(timer)
         res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`)
         res.json({
           id: completion.id,

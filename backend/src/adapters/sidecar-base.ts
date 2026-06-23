@@ -42,7 +42,6 @@ export abstract class SidecarAdapter extends AdapterBase {
       const res = await fetch(`${this.url}/models`, {
         headers: this.authHeaders(),
         signal: AbortSignal.timeout(5000),
-        keepalive: true,
       })
       return { healthy: res.ok, latencyMs: Date.now() - start, score: res.ok ? 80 : 0 }
     } catch (err) {
@@ -120,7 +119,6 @@ export abstract class SidecarAdapter extends AdapterBase {
         stream: true,
       }),
       signal: AbortSignal.timeout(this.timeout()),
-      keepalive: true,
     })
     if (!res.ok || !res.body) throw new Error(`${this.name} stream error: HTTP ${res.status}`)
 
@@ -135,10 +133,11 @@ export abstract class SidecarAdapter extends AdapterBase {
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
         for (let line of lines) {
-          if (line.endsWith('\r')) line = line.slice(0, -1)
-          if (line === 'data: [DONE]') return
-          if (!line.startsWith('data: ')) continue
-          try { yield JSON.parse(line.slice(6)) as ChatCompletionChunk } catch { /* skip */ }
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const data = trimmed.slice(5).trim()
+          if (data === '[DONE]') return
+          try { yield JSON.parse(data) as ChatCompletionChunk } catch { /* skip */ }
         }
       }
     } finally {

@@ -115,45 +115,50 @@ export class TelegramBotBridge {
         return
       }
 
-      let threadId = this.chatThreadMap.get(msg.chat.id)
-      if (!threadId) {
-        const thread = await this.createThread(msg.chat.id, msg.from)
-        if (!thread) return
-        threadId = thread.id
+      try {
+        let threadId = this.chatThreadMap.get(msg.chat.id)
+        if (!threadId) {
+          const thread = await this.createThread(msg.chat.id, msg.from)
+          if (!thread) return
+          threadId = thread.id
+        }
+
+        await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'user', content }),
+        })
+
+        const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`)
+        let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
+        if (historyRes.ok) {
+          const history = await historyRes.json() as Array<{ role: string; content: string }>
+          if (history.length > 0) messages = history
+        }
+
+        const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages, stream: false }),
+        })
+        if (!completionRes.ok) {
+          await this.sendMessage(msg.chat.id, 'AI request failed.')
+          return
+        }
+        const completion = await completionRes.json() as { choices?: Array<{ message?: { content?: string } }> }
+        const reply = completion.choices?.[0]?.message?.content ?? '(no response)'
+
+        await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: 'assistant', content: reply }),
+        })
+
+        await this.sendMessage(msg.chat.id, reply)
+      } catch (err) {
+        console.error('[TelegramBridge] chat error:', err)
+        await this.sendMessage(msg.chat.id, 'An error occurred while processing your request.')
       }
-
-      await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'user', content }),
-      })
-
-      const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`)
-      let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
-      if (historyRes.ok) {
-        const history = await historyRes.json() as Array<{ role: string; content: string }>
-        if (history.length > 0) messages = history
-      }
-
-      const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages, stream: false }),
-      })
-      if (!completionRes.ok) {
-        await this.sendMessage(msg.chat.id, 'AI request failed.')
-        return
-      }
-      const completion = await completionRes.json() as { choices?: Array<{ message?: { content?: string } }> }
-      const reply = completion.choices?.[0]?.message?.content ?? '(no response)'
-
-      await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: 'assistant', content: reply }),
-      })
-
-      await this.sendMessage(msg.chat.id, reply)
       return
     }
 
@@ -176,11 +181,18 @@ export class TelegramBotBridge {
   }
 
   private async sendMessage(chatId: number, text: string): Promise<void> {
-    await fetch(`https://api.telegram.org/bot${this.config.token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
-    })
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${this.config.token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text }),
+      })
+      if (!res.ok) {
+        console.error(`[TelegramBridge] sendMessage failed with status ${res.status}: ${res.statusText}`)
+      }
+    } catch (err) {
+      console.error('[TelegramBridge] sendMessage network error:', err)
+    }
   }
 }
 
