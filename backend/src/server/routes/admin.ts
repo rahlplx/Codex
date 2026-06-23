@@ -31,6 +31,10 @@ export function createAdminRouter(db: Database): Router {
       res.status(400).json({ error: 'role must be "admin" or "user"' })
       return
     }
+    if (req.tenant?.sub === req.params.id && role !== 'admin') {
+      res.status(400).json({ error: 'Cannot demote your own account' })
+      return
+    }
     const result = db.prepare('UPDATE tenants SET role = ? WHERE id = ?').run(role, req.params.id)
     if (result.changes === 0) { res.status(404).json({ error: 'Tenant not found' }); return }
     res.json({ updated: true })

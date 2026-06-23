@@ -66,6 +66,7 @@ export function openDatabase(path: string): Database {
     CREATE INDEX IF NOT EXISTS idx_tenant_keys_tenant ON tenant_keys(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_usage_log_tenant ON usage_log(tenant_id, timestamp);
     CREATE INDEX IF NOT EXISTS idx_usage_log_provider ON usage_log(provider, timestamp);
+    CREATE INDEX IF NOT EXISTS idx_usage_log_timestamp ON usage_log(timestamp);
     CREATE INDEX IF NOT EXISTS idx_threads_user ON threads(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id, ts ASC);
   `)

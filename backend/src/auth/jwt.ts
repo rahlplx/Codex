@@ -28,8 +28,17 @@ export function verifyToken(token: string): JwtPayload {
   if (parts.length !== 3) throw new Error('Invalid token format')
   const [header, payload, signature] = parts
   const expected = crypto.createHmac('sha256', SECRET).update(`${header}.${payload}`).digest('base64url')
-  if (signature !== expected) throw new Error('Invalid signature')
-  const decoded = JSON.parse(Buffer.from(payload!, 'base64url').toString()) as JwtPayload
+
+  const signatureBuffer = Buffer.from(signature!, 'base64url')
+  const expectedBuffer = Buffer.from(expected, 'base64url')
+  if (signatureBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) {
+    throw new Error('Invalid signature')
+  }
+
+  const decoded = JSON.parse(Buffer.from(payload!, 'base64url').toString())
+  if (!decoded || typeof decoded !== 'object' || typeof decoded.exp !== 'number') {
+    throw new Error('Invalid token payload')
+  }
   if (decoded.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired')
-  return decoded
+  return decoded as JwtPayload
 }

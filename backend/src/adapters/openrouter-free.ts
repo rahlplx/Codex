@@ -91,12 +91,14 @@ export class OpenRouterFreeAdapter extends AdapterBase {
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
         buffer = lines.pop() ?? ''
-        for (const line of lines) {
+        for (let line of lines) {
+          if (line.endsWith('\r')) line = line.slice(0, -1)
           if (!line.startsWith('data: ') || line === 'data: [DONE]') continue
           try { yield JSON.parse(line.slice(6)) as ChatCompletionChunk } catch {}
         }
       }
     } finally {
+      try { await reader.cancel() } catch {}
       reader.releaseLock()
     }
   }

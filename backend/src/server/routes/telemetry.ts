@@ -30,6 +30,10 @@ export function createTelemetryRouter(db: Database): Router {
   router.get('/api/telemetry/usage', (req, res) => {
     const tenantId = req.tenant?.sub
     const days = parseInt((req.query.days as string) ?? '7', 10)
+    if (isNaN(days) || days <= 0 || days > 365) {
+      res.status(400).json({ error: 'days parameter must be a positive integer up to 365' })
+      return
+    }
     const rows = tenantId
       ? db.prepare(`
           SELECT DATE(timestamp) as date, COUNT(*) as requests,

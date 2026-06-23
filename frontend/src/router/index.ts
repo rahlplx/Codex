@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useCodexAgent } from '../composables/useCodexAgent'
 
 const EmptyRouteView = {
   render: () => null,
@@ -51,16 +52,7 @@ const router = createRouter({
       path: '/admin',
       name: 'admin',
       component: EmptyRouteView,
-      beforeEnter: () => {
-        const raw = localStorage.getItem('codex_agent_user')
-        if (!raw) return { name: 'home' }
-        try {
-          const user = JSON.parse(raw)
-          if (user.role !== 'admin') return { name: 'home' }
-        } catch {
-          return { name: 'home' }
-        }
-      },
+      meta: { requiresAdmin: true },
     },
     {
       path: '/new-thread',
@@ -68,6 +60,13 @@ const router = createRouter({
     },
     { path: '/:pathMatch(.*)*', redirect: { name: 'home' } },
   ],
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresAdmin) {
+    const { isAdmin } = useCodexAgent()
+    if (!isAdmin.value) return { name: 'home' }
+  }
 })
 
 export default router
