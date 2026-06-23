@@ -53,5 +53,9 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
     app.use(createTelemetryRouter(db))
   }
 
+  app.use((_err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    res.status(500).json({ error: 'Internal server error' })
+  })
+
   return app
 }
