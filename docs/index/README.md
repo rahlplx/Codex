@@ -6,7 +6,7 @@ Master catalog of all documents in this repository. Update this file whenever a 
 
 | File | Title | Status | Date |
 |------|-------|--------|------|
-| _(none yet)_ | | | |
+| [SPEC-001-folder-structure.md](../specs/SPEC-001-folder-structure.md) | Agentic Engineering Folder Structure | Accepted | 2026-06-22 |
 
 ## Features
 
@@ -18,7 +18,7 @@ Master catalog of all documents in this repository. Update this file whenever a 
 
 | File | Topic |
 |------|-------|
-| _(none yet)_ | |
+| [README.md](../knowledge/README.md) | GitHub Actions runner requirements; hyphenated job ID expression syntax |
 
 ## TODOs / Backlog
 
