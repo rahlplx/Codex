@@ -36,17 +36,20 @@ export function createChatRouter(registry: AdapterRegistry): Router {
     }
 
     if (stream) {
+      let closed = false
+      req.on('close', () => { closed = true })
       res.setHeader('Content-Type', 'text/event-stream')
       res.setHeader('Cache-Control', 'no-cache')
       res.setHeader('Connection', 'keep-alive')
       res.flushHeaders()
       try {
         for await (const chunk of adapter.chatCompletionStream(chatReq)) {
+          if (closed) break
           res.write(`data: ${JSON.stringify(chunk)}\n\n`)
         }
-        res.write('data: [DONE]\n\n')
+        if (!closed) res.write('data: [DONE]\n\n')
       } catch (e) {
-        res.write(`data: ${JSON.stringify({ error: e instanceof Error ? e.message : 'stream error' })}\n\n`)
+        if (!closed) res.write(`data: ${JSON.stringify({ error: e instanceof Error ? e.message : 'stream error' })}\n\n`)
       } finally {
         res.end()
       }

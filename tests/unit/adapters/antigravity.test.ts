@@ -88,7 +88,8 @@ describe('AntigravityAdapter — chatCompletion', () => {
     await adapter.chatCompletion({ messages: [{ role: 'user', content: 'Hi' }] })
     const call = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call[0]).toContain('generateContent')
-    expect(call[0]).toContain('key=test-key')
+    expect(call[1].headers['x-goog-api-key']).toBe('test-key')
+    expect(call[0]).not.toContain('key=')
   })
 
   it('uses gemini-2.5-flash-preview as default model', async () => {

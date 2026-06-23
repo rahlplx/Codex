@@ -4,7 +4,9 @@ import { TelegramBotBridge, createTelegramBridge } from '../../../backend/src/in
 function makeBridge(overrides?: { allowedUserIds?: number[] }) {
   return new TelegramBotBridge({
     token: 'test-token',
-    allowedUserIds: overrides?.allowedUserIds ?? [],
+    // Default to allowing user 100 (the user ID used in all fetchUpdates tests).
+    // Pass an explicit list to test access control.
+    allowedUserIds: overrides?.allowedUserIds ?? [100],
     backendUrl: 'http://localhost:3001',
   })
 }

@@ -19,8 +19,10 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   if (!salt || !storedKey) return false
   return new Promise((resolve, reject) => {
     crypto.pbkdf2(password, salt, ITERATIONS, KEYLEN, DIGEST, (err, key) => {
-      if (err) reject(err)
-      else resolve(key.toString('hex') === storedKey)
+      if (err) { reject(err); return }
+      const stored = Buffer.from(storedKey, 'hex')
+      if (key.length !== stored.length) { resolve(false); return }
+      resolve(crypto.timingSafeEqual(key, stored))
     })
   })
 }

@@ -75,7 +75,8 @@ export class TelegramBotBridge {
     const msg = update.message
     if (!msg?.text || !msg.chat || !msg.from) return
 
-    if (this.config.allowedUserIds.length > 0 && !this.config.allowedUserIds.includes(msg.from.id)) {
+    // Fail-closed: empty allowedUserIds means no one is permitted
+    if (!this.config.allowedUserIds.includes(msg.from.id)) {
       await this.sendMessage(msg.chat.id, 'You are not authorized to use this bot.')
       return
     }
@@ -194,7 +195,21 @@ export function createTelegramBridge(): TelegramBotBridge | null {
     .map(s => parseInt(s.trim(), 10))
     .filter(n => !isNaN(n))
 
-  const backendUrl = process.env['TELEGRAM_BACKEND_URL'] ?? 'http://localhost:3001'
+  if (allowedUserIds.length === 0) {
+    console.warn('[TelegramBridge] TELEGRAM_ALLOWED_USER_IDS is not set — all users will be rejected. Set this to your Telegram numeric user IDs.')
+  }
+
+  const rawBackendUrl = process.env['TELEGRAM_BACKEND_URL'] ?? 'http://localhost:3001'
+  let backendUrl: string
+  try {
+    const parsed = new URL(rawBackendUrl)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`unsupported protocol: ${parsed.protocol}`)
+    }
+    backendUrl = parsed.href.replace(/\/$/, '')
+  } catch (e) {
+    throw new Error(`TELEGRAM_BACKEND_URL is invalid: ${rawBackendUrl} — ${e}`)
+  }
 
   return new TelegramBotBridge({ token, allowedUserIds, backendUrl })
 }

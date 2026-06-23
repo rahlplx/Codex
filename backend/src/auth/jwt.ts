@@ -8,7 +8,11 @@ export interface JwtPayload {
   exp: number
 }
 
-const SECRET = process.env['JWT_SECRET'] ?? crypto.randomBytes(32).toString('hex')
+const jwtSecret = process.env['JWT_SECRET']
+if (!jwtSecret) {
+  throw new Error('JWT_SECRET environment variable must be set to a secure random value (min 32 chars)')
+}
+const SECRET = jwtSecret
 const EXPIRY_SECONDS = 86400
 
 function base64url(data: string): string {
