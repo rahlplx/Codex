@@ -11,7 +11,10 @@ import { createAuthRouter } from './routes/auth.js'
 import { createAdminRouter } from './routes/admin.js'
 import { createTelemetryRouter } from './routes/telemetry.js'
 import { createRoutingRouter } from './routes/routing.js'
+import { createUserAdaptersRouter } from './routes/userAdapters.js'
 import { DomainScoreRepository } from '../storage/domainScores.js'
+import { TenantAdapterRepository } from '../storage/tenantAdapters.js'
+import { UsageLogRepository } from '../storage/usageLog.js'
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
   .split(',')
@@ -52,7 +55,9 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
 
   if (db) {
     const domainScores = new DomainScoreRepository(db)
-    app.use(createChatRouter(reg, domainScores))
+    const tenantAdapters = new TenantAdapterRepository(db)
+    const usageLog = new UsageLogRepository(db)
+    app.use(createChatRouter(reg, domainScores, tenantAdapters, usageLog))
     app.use(createRoutingRouter(domainScores))
     // auth must come before threads/admin/telemetry — those routers have router.use(authGuard)
     // which intercepts all paths, so /api/auth/* must be handled first
@@ -60,6 +65,7 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
     app.use(createThreadsRouter(db))
     app.use(createAdminRouter(db))
     app.use(createTelemetryRouter(db))
+    app.use(createUserAdaptersRouter(tenantAdapters))
   } else {
     app.use(createChatRouter(reg))
   }

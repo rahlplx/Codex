@@ -2,9 +2,7 @@ import type { SimClient } from '../helpers/client.js'
 import { assertStatus, assertArray } from '../helpers/assert.js'
 
 export async function runTelemetryScenarios(http: SimClient, adminToken: string): Promise<void> {
-  // Note: usage_log is not seeded by mock chat calls (chat route writes only to
-  // adapter_domain_scores, not usage_log). All endpoints return empty-but-valid arrays.
-  // We verify shape and auth requirements only.
+  // Chat scenarios run before telemetry and write to usage_log, so we assert non-zero data.
 
   // 1. Rankings — shape check
   const rank = await http.get('/api/telemetry/rankings', adminToken)
@@ -39,7 +37,7 @@ export async function runTelemetryScenarios(http: SimClient, adminToken: string)
   assertStatus(spd.status, 200, 'telemetry.speed')
   assertArray(spd.body, 'telemetry.speed')
 
-  // 8. Summary — field presence check
+  // 8. Summary — field presence and non-zero requests
   const sum = await http.get('/api/telemetry/summary', adminToken)
   assertStatus(sum.status, 200, 'telemetry.summary')
   const sumBody = sum.body as Record<string, unknown>
@@ -47,6 +45,9 @@ export async function runTelemetryScenarios(http: SimClient, adminToken: string)
     if (sumBody[field] === undefined)
       throw new Error(`telemetry.summary: field "${field}" missing`)
   }
+  const totalRequests = sumBody['total_requests'] as number
+  if (totalRequests < 1)
+    throw new Error(`telemetry.summary: expected total_requests >= 1 (usage_log should be populated by chat scenarios), got ${totalRequests}`)
 
   // 9. Unauthenticated access → 401
   const unauth = await http.get('/api/telemetry/rankings')

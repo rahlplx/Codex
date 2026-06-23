@@ -14,7 +14,7 @@ function parseSSEEvents(text: string): Array<{ data: string }> {
     .filter(e => e.data !== '')
 }
 
-export async function runChatScenarios(http: SimClient, mock: MockAdapter): Promise<void> {
+export async function runChatScenarios(http: SimClient, mock: MockAdapter, adminToken: string): Promise<void> {
   // Reset routing prefs to clean state
   setAutoRouting(true)
   setDisabledAdapters([])
@@ -23,7 +23,7 @@ export async function runChatScenarios(http: SimClient, mock: MockAdapter): Prom
   const chatRes = await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'Say hello' }],
     stream: false,
-  })
+  }, adminToken)
   assertStatus(chatRes.status, 200, 'chat.nonstream')
   const chatBody = chatRes.body as Record<string, unknown>
   if (chatBody['object'] !== 'chat.completion')
@@ -36,7 +36,7 @@ export async function runChatScenarios(http: SimClient, mock: MockAdapter): Prom
   const codingRes = await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'Write a typescript function to sort an array' }],
     stream: false,
-  })
+  }, adminToken)
   assertStatus(codingRes.status, 200, 'chat.domain_coding')
   const routedDomain = codingRes.headers.get('x-routed-domain')
   if (routedDomain !== 'coding')
@@ -49,7 +49,7 @@ export async function runChatScenarios(http: SimClient, mock: MockAdapter): Prom
   const streamRes = await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'Hi stream' }],
     stream: true,
-  })
+  }, adminToken)
   assertStatus(streamRes.status, 200, 'chat.stream')
   const ct = streamRes.headers.get('content-type') ?? ''
   if (!ct.includes('text/event-stream'))
@@ -66,16 +66,30 @@ export async function runChatScenarios(http: SimClient, mock: MockAdapter): Prom
   const s503 = await http.post('/api/chat/completions', {
     messages: [{ role: 'user', content: 'Hi' }],
     stream: false,
-  })
+  }, adminToken)
   assertStatus(s503.status, 503, 'chat.no_adapter_503')
   assertIncludes(JSON.stringify(s503.body), 'No healthy adapter', 'chat.no_adapter_503.body')
   mock.setHealthy(true)
 
   // 5. Validation: empty messages → 400
-  const empty = await http.post('/api/chat/completions', { messages: [], stream: false })
+  const empty = await http.post('/api/chat/completions', { messages: [], stream: false }, adminToken)
   assertStatus(empty.status, 400, 'chat.empty_messages_400')
 
   // 6. Validation: missing messages → 400
-  const missing = await http.post('/api/chat/completions', { model: 'some-model' })
+  const missing = await http.post('/api/chat/completions', { model: 'some-model' }, adminToken)
   assertStatus(missing.status, 400, 'chat.missing_messages_400')
+
+  // 7. Unauthenticated → 401
+  const unauth = await http.post('/api/chat/completions', {
+    messages: [{ role: 'user', content: 'Hi' }],
+  })
+  assertStatus(unauth.status, 401, 'chat.unauth_401')
+
+  // 8. Verify usage_log was written — telemetry summary should reflect the completions above
+  const summary = await http.get('/api/telemetry/summary', adminToken)
+  assertStatus(summary.status, 200, 'chat.telemetry_summary')
+  const sumBody = summary.body as Record<string, unknown>
+  const totalRequests = sumBody['total_requests'] as number
+  if (totalRequests < 1)
+    throw new Error(`chat.telemetry_summary: expected total_requests >= 1, got ${totalRequests}`)
 }

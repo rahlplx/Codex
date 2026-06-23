@@ -81,5 +81,12 @@ export function openDatabase(path: string): Database {
     );
   `)
 
+  // Safe migration — no-op if column already exists
+  try {
+    db.exec('ALTER TABLE tenant_keys ADD COLUMN endpoint_url TEXT')
+  } catch {
+    // Column already exists
+  }
+
   return db
 }
