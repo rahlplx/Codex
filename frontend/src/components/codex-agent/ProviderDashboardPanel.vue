@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCodexAgent } from '../../composables/useCodexAgent'
 
 const { agentFetch } = useCodexAgent()
@@ -31,8 +31,8 @@ async function loadProviders() {
   loading.value = false
 }
 
-const healthyCount = () => providers.value.filter(p => p.health?.healthy).length
-const totalModels = () => providers.value.reduce((s, p) => s + p.models.length, 0)
+const healthyCount = computed(() => providers.value.filter(p => p.health?.healthy).length)
+const totalModels = computed(() => providers.value.reduce((s, p) => s + p.models.length, 0))
 
 function tierLabel(tier: string) {
   return tier === 'free' ? 'Free' : tier === 'freemium' ? 'Freemium' : tier
@@ -66,11 +66,11 @@ onUnmounted(() => {
           <span class="codex-agent-stat-label">Providers</span>
         </div>
         <div class="codex-agent-stat-card">
-          <span class="codex-agent-stat-value is-healthy">{{ healthyCount() }}</span>
+          <span class="codex-agent-stat-value is-healthy">{{ healthyCount }}</span>
           <span class="codex-agent-stat-label">Active</span>
         </div>
         <div class="codex-agent-stat-card">
-          <span class="codex-agent-stat-value">{{ totalModels() }}</span>
+          <span class="codex-agent-stat-value">{{ totalModels }}</span>
           <span class="codex-agent-stat-label">Models</span>
         </div>
       </div>

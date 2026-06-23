@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useCodexAgent } from '../../composables/useCodexAgent'
 
 const { agentFetch } = useCodexAgent()
 
 interface Ranking {
   model: string
-  provider: string
+  provider?: string
   success_rate: number
   avg_latency_ms: number
   total_tokens: number
@@ -17,7 +17,7 @@ interface UsageDay {
   date: string
   requests: number
   total_tokens: number
-  cost_usd: number
+  total_cost: number
 }
 
 interface ReliabilityRow {
@@ -50,9 +50,9 @@ async function loadData() {
   loading.value = false
 }
 
-const totalRequests = () => usage.value.reduce((s, d) => s + d.requests, 0)
-const totalTokens = () => usage.value.reduce((s, d) => s + d.total_tokens, 0)
-const totalCost = () => usage.value.reduce((s, d) => s + d.cost_usd, 0)
+const totalRequests = computed(() => usage.value.reduce((s, d) => s + d.requests, 0))
+const totalTokens = computed(() => usage.value.reduce((s, d) => s + d.total_tokens, 0))
+const totalCost = computed(() => usage.value.reduce((s, d) => s + d.total_cost, 0))
 
 onMounted(loadData)
 </script>
@@ -64,15 +64,15 @@ onMounted(loadData)
     <template v-else>
       <div class="codex-agent-stats">
         <div class="codex-agent-stat-card">
-          <span class="codex-agent-stat-value">{{ totalRequests().toLocaleString() }}</span>
+          <span class="codex-agent-stat-value">{{ totalRequests.toLocaleString() }}</span>
           <span class="codex-agent-stat-label">Requests (7d)</span>
         </div>
         <div class="codex-agent-stat-card">
-          <span class="codex-agent-stat-value">{{ (totalTokens() / 1000).toFixed(1) }}k</span>
+          <span class="codex-agent-stat-value">{{ (totalTokens / 1000).toFixed(1) }}k</span>
           <span class="codex-agent-stat-label">Tokens (7d)</span>
         </div>
         <div class="codex-agent-stat-card">
-          <span class="codex-agent-stat-value">${{ totalCost().toFixed(4) }}</span>
+          <span class="codex-agent-stat-value">${{ totalCost.toFixed(4) }}</span>
           <span class="codex-agent-stat-label">Cost (7d)</span>
         </div>
       </div>
@@ -95,7 +95,10 @@ onMounted(loadData)
             <tr v-for="(r, i) in rankings" :key="r.model">
               <td class="rank-cell">#{{ i + 1 }}</td>
               <td class="model-cell">{{ r.model }}</td>
-              <td><span class="codex-agent-badge">{{ r.provider }}</span></td>
+              <td>
+                <span v-if="r.provider" class="codex-agent-badge">{{ r.provider }}</span>
+                <span v-else>—</span>
+              </td>
               <td>
                 <span class="codex-agent-success-badge" :class="{ 'is-good': r.success_rate >= 95, 'is-warn': r.success_rate >= 80 && r.success_rate < 95, 'is-bad': r.success_rate < 80 }">
                   {{ r.success_rate.toFixed(1) }}%
@@ -151,7 +154,7 @@ onMounted(loadData)
               <td>{{ day.date }}</td>
               <td>{{ day.requests.toLocaleString() }}</td>
               <td>{{ day.total_tokens.toLocaleString() }}</td>
-              <td>${{ day.cost_usd.toFixed(4) }}</td>
+              <td>${{ day.total_cost.toFixed(4) }}</td>
             </tr>
           </tbody>
         </table>

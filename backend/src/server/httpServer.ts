@@ -17,7 +17,7 @@ const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS ?? 'http://localhost:5173')
 
 function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
   const origin = req.headers.origin
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*'))) {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Vary', 'Origin')
   }
