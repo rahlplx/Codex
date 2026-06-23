@@ -144,7 +144,7 @@ assert_contains ".github/workflows/ci.yml" "unit-tests:"
 assert_contains ".github/workflows/ci.yml" "integration-tests:"
 assert_contains ".github/workflows/ci.yml" "e2e-tests:"
 assert_contains ".github/workflows/ci.yml" "telemetry:"
-assert_contains ".github/workflows/ci.yml" "self-hosted"
+assert_contains ".github/workflows/ci.yml" "ubuntu-latest"
 
 # --- Loop 10: Settings hook is correct ---
 echo ""
