@@ -42,6 +42,7 @@ export abstract class SidecarAdapter extends AdapterBase {
       const res = await fetch(`${this.url}/models`, {
         headers: this.authHeaders(),
         signal: AbortSignal.timeout(5000),
+        keepalive: true,
       })
       return { healthy: res.ok, latencyMs: Date.now() - start, score: res.ok ? 80 : 0 }
     } catch (err) {
@@ -119,6 +120,7 @@ export abstract class SidecarAdapter extends AdapterBase {
         stream: true,
       }),
       signal: AbortSignal.timeout(this.timeout()),
+      keepalive: true,
     })
     if (!res.ok || !res.body) throw new Error(`${this.name} stream error: HTTP ${res.status}`)
 

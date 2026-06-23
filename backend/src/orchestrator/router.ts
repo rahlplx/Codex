@@ -14,9 +14,20 @@ interface ScoredAdapter {
 }
 
 export class Router {
-  constructor(private readonly registry: AdapterRegistry) {}
+  private cachedAdapter: ICliAdapter | null = null
+  private cacheTimestamp = 0
+  private readonly cacheTtlMs: number
+
+  constructor(private readonly registry: AdapterRegistry, cacheTtlMs = 5000) {
+    this.cacheTtlMs = cacheTtlMs
+  }
 
   async route(): Promise<ICliAdapter> {
+    const now = Date.now()
+    if (this.cachedAdapter && now - this.cacheTimestamp < this.cacheTtlMs) {
+      return this.cachedAdapter
+    }
+
     const adapters = this.registry.list()
     if (adapters.length === 0) throw new NoAdapterAvailableError()
 
@@ -39,6 +50,8 @@ export class Router {
     if (scored.length === 0) throw new NoAdapterAvailableError()
 
     scored.sort((a, b) => b.score - a.score)
-    return scored[0]!.adapter
+    this.cachedAdapter = scored[0]!.adapter
+    this.cacheTimestamp = Date.now()
+    return this.cachedAdapter
   }
 }

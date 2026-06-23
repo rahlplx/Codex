@@ -13,3 +13,15 @@ Job logs returned HTTP 404 within minutes of job completion in this environment.
 ## 2026-06-23 — GitHub Actions `needs` context bracket notation for hyphens
 
 Job IDs with hyphens (e.g. `unit-tests`) should be accessed in `needs` context via bracket notation: `needs['unit-tests'].result`. Dot notation (`needs.unit-tests.result`) may parse the hyphen as arithmetic subtraction in some evaluator versions. Current workflow uses dot notation; update when a self-hosted runner is available to test.
+
+## 2026-06-23 — Telegram sendMessage parse_mode: 'HTML' causes silent 400 errors
+
+Telegram's HTML parser is extremely strict. AI-generated responses containing `<`, `>`, or `&` characters cause `400 Bad Request` errors, silently preventing message delivery. Remove `parse_mode` entirely unless actively using HTML formatting with proper escaping.
+
+## 2026-06-23 — CodeRabbit rate limits are per-developer, rolling window
+
+CodeRabbit enforces per-developer PR review limits. Rapid push/draft/ready cycles consume limit quickly. Reviews auto-recover after ~17 minutes as older attempts age out. Batch commits before marking PR ready to avoid wasting review slots.
+
+## 2026-06-23 — Vitest picks up Playwright .spec.ts files unless excluded
+
+Vitest's default include pattern matches `*.spec.ts`. E2E tests using `@playwright/test` imports will fail under vitest with `ERR_MODULE_NOT_FOUND`. Either exclude `tests/e2e/` in vitest config or ensure playwright tests are only in the e2e directory with a separate playwright config.

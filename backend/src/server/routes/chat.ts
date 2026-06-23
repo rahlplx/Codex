@@ -8,6 +8,7 @@ export function createChatRouter(registry: AdapterRegistry): Router {
   const orchestrator = new OrchestratorRouter(registry)
 
   router.post('/api/chat/completions', async (req, res) => {
+    const startTime = Date.now()
     const { messages, model, stream, temperature, max_tokens } = req.body as Record<string, unknown>
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -52,7 +53,13 @@ export function createChatRouter(registry: AdapterRegistry): Router {
       }
     } else {
       try {
-        const completion = await adapter.chatCompletion(chatReq)
+        const completion = await Promise.race([
+          adapter.chatCompletion(chatReq),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Request timed out')), 30_000)
+          ),
+        ])
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`)
         res.json({
           id: completion.id,
           object: 'chat.completion',
@@ -63,7 +70,10 @@ export function createChatRouter(registry: AdapterRegistry): Router {
           usage: completion.usage,
         })
       } catch (e) {
-        res.status(500).json({ error: e instanceof Error ? e.message : 'completion failed' })
+        res.setHeader('X-Response-Time', `${Date.now() - startTime}ms`)
+        const message = e instanceof Error ? e.message : 'completion failed'
+        const status = message === 'Request timed out' ? 504 : 500
+        res.status(status).json({ error: message })
       }
     }
   })

@@ -25,6 +25,18 @@ All provider adapters implement `ICliAdapter` (defined in `src/types/adapter.ts`
 **App.vue**: sidebar nav buttons follow `.sidebar-skills-link` pattern; `ContentHeader` `:accent` extended; content body branches after `isAutomationsRoute`; computed `isProvidersRoute` / `isModelsRoute`; `contentTitle` updated.  
 **Never modify**: `codexAppServerBridge.ts` (9656 lines), `freeMode.ts`, `unifiedResponsesProxy.ts` — these are Phase 2 (server bridge replacement).
 
+## 2026-06-23 — SidecarAdapter base class (shared OpenAI-compatible protocol)
+
+All community router sidecars (9Router, CliRelay, CLIProxyAPI, AIClient2API) extend `SidecarAdapter` which extends `AdapterBase`. Each concrete class only defines: `id`, `name`, `tier`, `defaultBaseUrl`, `fallbackModels`. The base handles healthCheck (GET /models), getQuota (unlimited), supportedModels (dynamic via /models + fallback), chatCompletion, and chatCompletionStream — all through OpenAI-compatible endpoints. Optional chaining on all API response fields prevents crashes from malformed responses.
+
+## 2026-06-23 — Caddy reverse proxy for production
+
+Production deployment uses Caddy (via `deploy/docker-compose.prod.yml`) for automatic TLS, API proxying (`/api/* → backend:3001`), SPA serving (try_files with fallback to index.html), security headers (X-Frame-Options, CSP, HSTS), and gzip/zstd compression. Zero-config HTTPS via ACME.
+
+## 2026-06-23 — Telegram bot bridge architecture
+
+Polling-based (not webhook) to work behind NAT/firewalls without public URL. Maps Telegram chat IDs to backend thread IDs. Commands: /start, /help, /newthread, /chat, /status. Thread creation is centralized in `createThread()` helper. Chat completions include full thread history for context. Error handling: polling errors logged, thread/completion failures reported to user. Env vars: TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USER_IDS, TELEGRAM_BACKEND_URL.
+
 ## 2026-06-23 — SQLite for thread/message persistence
 
 Single-file SQLite at `DATABASE_PATH=/app/data/codex.db`. Schema: `threads(id, user_id, title, created_at, archived)`, `messages(id, thread_id, role, content, provider_id, model_id, ts)`. No external DB dependency — simplifies single-VPS deploys and backup (snapshot the data volume).

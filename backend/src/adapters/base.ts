@@ -36,7 +36,7 @@ export abstract class AdapterBase implements ICliAdapter {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeout())
     try {
-      const res = await fetch(url, { ...init, signal: controller.signal })
+      const res = await fetch(url, { ...init, signal: controller.signal, keepalive: true })
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
       return await res.json() as T
     } finally {

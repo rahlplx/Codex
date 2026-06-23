@@ -79,4 +79,48 @@ describe('Router', () => {
     registry.register(makeAdapter('full', { quotaExhausted: true }))
     await expect(router.route()).rejects.toThrow(NoAdapterAvailableError)
   })
+
+  it('treats adapter as unhealthy when healthCheck() throws', async () => {
+    const failing: ICliAdapter = {
+      ...makeAdapter('hc-fail', { score: 1.0 }),
+      async healthCheck() { throw new Error('network down') },
+    }
+    const working = makeAdapter('hc-ok', { score: 0.5 })
+    registry.register(failing)
+    registry.register(working)
+    const result = await router.route()
+    expect(result.id).toBe('hc-ok')
+  })
+
+  it('falls back gracefully when getQuota() throws (remaining=null treated as ok)', async () => {
+    const failing: ICliAdapter = {
+      ...makeAdapter('quota-fail', { score: 1.0 }),
+      async getQuota() { throw new Error('quota service unavailable') },
+    }
+    registry.register(failing)
+    // The catch fallback sets remaining: null which passes the quotaOk check,
+    // so the adapter is still routable if healthy.
+    const result = await router.route()
+    expect(result.id).toBe('quota-fail')
+  })
+
+  it('throws NoAdapterAvailableError when only adapter has healthCheck that throws', async () => {
+    const failing: ICliAdapter = {
+      ...makeAdapter('sole-hc-fail'),
+      async healthCheck() { throw new Error('boom') },
+    }
+    registry.register(failing)
+    await expect(router.route()).rejects.toThrow(NoAdapterAvailableError)
+  })
+
+  it('still routes when getQuota throws on the only adapter (graceful degradation)', async () => {
+    const adapter: ICliAdapter = {
+      ...makeAdapter('sole-quota-fail'),
+      async getQuota() { throw new Error('boom') },
+    }
+    registry.register(adapter)
+    // getQuota catch fallback has remaining: null => quotaOk = true
+    const result = await router.route()
+    expect(result.id).toBe('sole-quota-fail')
+  })
 })

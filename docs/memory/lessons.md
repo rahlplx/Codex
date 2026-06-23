@@ -39,3 +39,19 @@ Append-only log of mistakes, near-misses, and how they were resolved.
 **Mistake:** Loop 6 asserted existence of `logs/sessions/2026-06-23-full-audit.md` and `logs/telemetry/2026-06-23.jsonl`. These are gitignored runtime files that don't exist in a fresh clone.
 
 **Resolution:** Replace existence checks with write-capability checks: create a hidden temp file (`.harness-test.*`), verify it's readable, then delete it. This tests the same property (directory is writable) without requiring pre-existing runtime state.
+
+## 2026-06-23 — Harness assertions must evolve with the codebase
+
+**Mistake:** Harness Loop 9 asserted `self-hosted` in ci.yml, but the CI was migrated to `ubuntu-latest`. The harness reported a false failure (120/121) because the assertion was stale.
+
+**Resolution:** When changing infrastructure (CI runners, build tools, deployment), always grep the harness for related assertions and update them. Treat the harness as a living document, not a one-time snapshot.
+
+## 2026-06-23 — GitHub Actions runner_id:0 is a billing issue, not a code issue
+
+**Lesson:** After multiple CI re-runs showing runner_id:0, conclusion:failure, and no logs (HTTP 404), the pattern was confirmed as GitHub Actions billing/quota exhaustion on the account. TypeScript compiled cleanly and 284 tests passed locally. Don't waste time debugging code when the runner never allocated — check billing first.
+
+## 2026-06-23 — Root package.json needs test-time deps when tests import from backend/
+
+**Mistake:** Vitest tests at `tests/unit/server/*.test.ts` import from `backend/src/` but run from the backend directory via vitest.config.ts. However, deps like `supertest`, `express`, and `better-sqlite3` must be available from the resolution root. Initially only `supertest` was installed at root; `express` was missing.
+
+**Resolution:** Either install shared deps at root for test resolution, or configure vitest to resolve from backend/node_modules. Current approach: root package.json includes supertest + express + better-sqlite3 as devDependencies.

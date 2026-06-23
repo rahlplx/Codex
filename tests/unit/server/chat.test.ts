@@ -263,6 +263,41 @@ describe('POST /api/chat/completions — no adapter', () => {
   })
 })
 
+// ── generic routing error (not NoAdapterAvailableError) ──────────────────────
+
+describe('POST /api/chat/completions — generic routing error', () => {
+  let server: Server
+  let baseUrl: string
+
+  beforeAll(async () => {
+    // Register an adapter whose healthCheck throws a generic Error
+    // so the OrchestratorRouter.route() throws something other than
+    // NoAdapterAvailableError.
+    const registry = new AdapterRegistry()
+    // We need to make route() throw a non-NoAdapterAvailableError.
+    // We do this by registering an adapter that causes an unexpected
+    // error during the routing phase. We override the registry.list()
+    // to throw a generic error.
+    const brokenRegistry = new AdapterRegistry()
+    Object.defineProperty(brokenRegistry, 'list', {
+      value: () => { throw new Error('unexpected registry failure') },
+    })
+    ;({ server, baseUrl } = await startServer(brokenRegistry))
+  })
+  afterAll(() => stopServer(server))
+
+  it('returns 500 with "Internal routing error" for non-NoAdapterAvailableError', async () => {
+    const res = await fetch(`${baseUrl}/api/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
+    })
+    expect(res.status).toBe(500)
+    const body = await res.json() as { error: string }
+    expect(body.error).toBe('Internal routing error')
+  })
+})
+
 // ── streaming ─────────────────────────────────────────────────────────────────
 
 describe('POST /api/chat/completions — streaming', () => {
@@ -318,5 +353,73 @@ describe('POST /api/chat/completions — streaming', () => {
       .flatMap(c => c.choices.map(ch => ch.delta.content ?? ''))
       .join('')
     expect(contents).toBe('Hi!')
+  })
+})
+
+// ── streaming error mid-stream ───────────────────────────────────────────────
+
+describe('POST /api/chat/completions — stream error', () => {
+  it('sends error event when chatCompletionStream throws mid-stream', async () => {
+    const registry = new AdapterRegistry()
+    registry.register(makeMockAdapter({
+      async *chatCompletionStream(_req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
+        yield { id: 'c1', choices: [{ index: 0, delta: { role: 'assistant', content: 'partial' }, finishReason: null }] }
+        throw new Error('mid-stream kaboom')
+      },
+    }))
+    const { server, baseUrl } = await startServer(registry)
+    try {
+      const res = await fetch(`${baseUrl}/api/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] }),
+      })
+      expect(res.headers.get('content-type')).toMatch(/text\/event-stream/)
+      const text = await res.text()
+      const events = parseSSE(text)
+
+      // Should contain the partial chunk, then an error event (no [DONE] after error)
+      const errorEvent = events.find(e => {
+        try {
+          const parsed = JSON.parse(e.data) as { error?: string }
+          return typeof parsed.error === 'string'
+        } catch { return false }
+      })
+      expect(errorEvent).toBeDefined()
+      const errorBody = JSON.parse(errorEvent!.data) as { error: string }
+      expect(errorBody.error).toBe('mid-stream kaboom')
+    } finally {
+      await stopServer(server)
+    }
+  })
+
+  it('sends generic "stream error" when non-Error is thrown', async () => {
+    const registry = new AdapterRegistry()
+    registry.register(makeMockAdapter({
+      async *chatCompletionStream(_req: ChatCompletionRequest): AsyncIterable<ChatCompletionChunk> {
+        throw 'string-error'  // eslint-disable-line no-throw-literal
+      },
+    }))
+    const { server, baseUrl } = await startServer(registry)
+    try {
+      const res = await fetch(`${baseUrl}/api/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] }),
+      })
+      const text = await res.text()
+      const events = parseSSE(text)
+      const errorEvent = events.find(e => {
+        try {
+          const parsed = JSON.parse(e.data) as { error?: string }
+          return typeof parsed.error === 'string'
+        } catch { return false }
+      })
+      expect(errorEvent).toBeDefined()
+      const errorBody = JSON.parse(errorEvent!.data) as { error: string }
+      expect(errorBody.error).toBe('stream error')
+    } finally {
+      await stopServer(server)
+    }
   })
 })

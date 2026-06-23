@@ -1,4 +1,5 @@
 import express from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import type { Database } from 'better-sqlite3'
 import { AdapterRegistry } from '../adapters/registry.js'
 import { healthRouter } from './routes/health.js'
@@ -14,7 +15,7 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   const reg = registry ?? new AdapterRegistry()
   const app = express()
 
-  app.use(express.json())
+  app.use(express.json({ limit: '1mb' }))
 
   app.use(healthRouter)
   app.use(createProvidersRouter(reg))
@@ -26,6 +27,18 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
     app.use(createAdminRouter(db))
     app.use(createTelemetryRouter(db))
   }
+
+  // Global error handler — must be registered after all routes
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    const status =
+      err instanceof SyntaxError && 'status' in err && (err as { status: number }).status === 400
+        ? 400
+        : 500
+    if (!res.headersSent) {
+      res.status(status).json({ error: message })
+    }
+  })
 
   return app
 }
