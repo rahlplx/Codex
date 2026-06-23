@@ -47,7 +47,7 @@ export class TelegramBotBridge {
   private poll(): void {
     if (!this.polling) return
     this.fetchUpdates()
-      .catch(() => {})
+      .catch((err) => { console.error('[TelegramBridge] polling error:', err) })
       .finally(() => {
         if (this.polling) {
           this.pollTimer = setTimeout(() => this.poll(), 2000)
@@ -94,17 +94,8 @@ export class TelegramBotBridge {
     }
 
     if (text === '/newthread') {
-      const threadRes = await fetch(`${this.config.backendUrl}/api/threads`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: `Telegram ${msg.from.first_name ?? msg.from.id}`, userId: `tg-${msg.from.id}` }),
-      })
-      if (!threadRes.ok) {
-        await this.sendMessage(msg.chat.id, 'Failed to create thread.')
-        return
-      }
-      const thread = await threadRes.json() as { id: string; title: string }
-      this.chatThreadMap.set(msg.chat.id, thread.id)
+      const thread = await this.createThread(msg.chat.id, msg.from)
+      if (!thread) return
       await this.sendMessage(msg.chat.id, `Thread created: ${thread.title} (${thread.id})`)
       return
     }
@@ -117,8 +108,8 @@ export class TelegramBotBridge {
       return
     }
 
-    if (text.startsWith('/chat ')) {
-      const content = text.slice(6).trim()
+    if (text === '/chat' || text.startsWith('/chat ')) {
+      const content = text.slice(5).trim()
       if (!content) {
         await this.sendMessage(msg.chat.id, 'Usage: /chat <your message>')
         return
@@ -126,18 +117,9 @@ export class TelegramBotBridge {
 
       let threadId = this.chatThreadMap.get(msg.chat.id)
       if (!threadId) {
-        const threadRes = await fetch(`${this.config.backendUrl}/api/threads`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: `Telegram ${msg.from.first_name ?? msg.from.id}`, userId: `tg-${msg.from.id}` }),
-        })
-        if (!threadRes.ok) {
-          await this.sendMessage(msg.chat.id, 'Failed to create thread.')
-          return
-        }
-        const thread = await threadRes.json() as { id: string }
+        const thread = await this.createThread(msg.chat.id, msg.from)
+        if (!thread) return
         threadId = thread.id
-        this.chatThreadMap.set(msg.chat.id, threadId)
       }
 
       await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
@@ -146,10 +128,17 @@ export class TelegramBotBridge {
         body: JSON.stringify({ role: 'user', content }),
       })
 
+      const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`)
+      let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
+      if (historyRes.ok) {
+        const history = await historyRes.json() as Array<{ role: string; content: string }>
+        if (history.length > 0) messages = history
+      }
+
       const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content }], stream: false }),
+        body: JSON.stringify({ messages, stream: false }),
       })
       if (!completionRes.ok) {
         await this.sendMessage(msg.chat.id, 'AI request failed.')
@@ -171,11 +160,26 @@ export class TelegramBotBridge {
     await this.sendMessage(msg.chat.id, 'Unknown command. Use /help to see available commands.')
   }
 
+  private async createThread(chatId: number, from: { id: number; first_name?: string }): Promise<{ id: string; title: string } | null> {
+    const threadRes = await fetch(`${this.config.backendUrl}/api/threads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: `Telegram ${from.first_name ?? from.id}`, userId: `tg-${from.id}` }),
+    })
+    if (!threadRes.ok) {
+      await this.sendMessage(chatId, 'Failed to create thread.')
+      return null
+    }
+    const thread = await threadRes.json() as { id: string; title: string }
+    this.chatThreadMap.set(chatId, thread.id)
+    return thread
+  }
+
   private async sendMessage(chatId: number, text: string): Promise<void> {
     await fetch(`https://api.telegram.org/bot${this.config.token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+      body: JSON.stringify({ chat_id: chatId, text }),
     })
   }
 }

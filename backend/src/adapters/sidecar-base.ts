@@ -58,7 +58,7 @@ export abstract class SidecarAdapter extends AdapterBase {
       const result = await this.fetchJson<OpenAIModelList>(`${this.url}/models`, {
         headers: this.authHeaders(),
       })
-      if (result.data && result.data.length > 0) {
+      if (result?.data && result.data.length > 0) {
         return result.data.map(m => ({
           id: m.id,
           name: m.id,
@@ -90,18 +90,18 @@ export abstract class SidecarAdapter extends AdapterBase {
     )
 
     return {
-      id: result.id ?? `${this.id}-${Date.now()}`,
-      choices: (result.choices ?? []).map((c, i) => ({
+      id: result?.id ?? `${this.id}-${Date.now()}`,
+      choices: (result?.choices ?? []).map((c, i) => ({
         index: i,
         message: { role: 'assistant', content: c.message?.content ?? '' },
         finishReason: (c.finish_reason as ChatCompletionResponse['choices'][number]['finishReason']) ?? null,
       })),
       usage: {
-        promptTokens: result.usage?.prompt_tokens ?? 0,
-        completionTokens: result.usage?.completion_tokens ?? 0,
-        totalTokens: result.usage?.total_tokens ?? 0,
+        promptTokens: result?.usage?.prompt_tokens ?? 0,
+        completionTokens: result?.usage?.completion_tokens ?? 0,
+        totalTokens: result?.usage?.total_tokens ?? 0,
       },
-      model: result.model,
+      model: result?.model,
       provider: this.id,
     }
   }

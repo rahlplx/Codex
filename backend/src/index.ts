@@ -12,6 +12,7 @@ import { CliProxyApiAdapter } from './adapters/cli-proxy-api.js'
 import { AiClient2ApiAdapter } from './adapters/ai-client2api.js'
 import { openDatabase } from './storage/database.js'
 import { ModelDiscoveryScanner } from './discovery/scanner.js'
+import { createTelegramBridge } from './integrations/telegram.js'
 
 const config = loadConfig()
 
@@ -57,6 +58,12 @@ const db = openDatabase(config.databasePath)
 
 const scanner = new ModelDiscoveryScanner(registry)
 scanner.start()
+
+const telegramBridge = createTelegramBridge()
+if (telegramBridge) {
+  telegramBridge.start()
+  console.log('Telegram bot bridge started')
+}
 
 const app = createApp(registry, db)
 

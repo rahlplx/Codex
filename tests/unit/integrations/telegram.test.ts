@@ -164,4 +164,44 @@ describe('TelegramBotBridge — fetchUpdates', () => {
     await bridge.fetchUpdates()
     expect(bridge.getMappedChats()).toBe(1)
   })
+
+  it('handles /chat without arguments', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/chat', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    const sendCall = fetchMock.mock.calls[1]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.text).toContain('Usage: /chat')
+  })
+
+  it('sendMessage does not include parse_mode', async () => {
+    const updates = {
+      ok: true,
+      result: [{
+        update_id: 1,
+        message: { message_id: 1, text: '/help', from: { id: 100 }, chat: { id: 200 } },
+      }],
+    }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(updates) })
+      .mockResolvedValueOnce({ ok: true })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    await bridge.fetchUpdates()
+    const sendCall = fetchMock.mock.calls[1]
+    const body = JSON.parse(sendCall[1].body)
+    expect(body.parse_mode).toBeUndefined()
+  })
 })
