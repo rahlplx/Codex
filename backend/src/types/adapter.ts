@@ -27,15 +27,16 @@ export interface Model {
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool'
   content: string
-  name?: string
+  name?: string | undefined
+  [key: string]: unknown
 }
 
 export interface ChatCompletionRequest {
-  model?: string
+  model?: string | undefined
   messages: ChatMessage[]
-  stream?: boolean
-  temperature?: number
-  maxTokens?: number
+  stream?: boolean | undefined
+  temperature?: number | undefined
+  maxTokens?: number | undefined
 }
 
 export interface ChatCompletionChoice {
@@ -54,8 +55,8 @@ export interface ChatCompletionResponse {
   id: string
   choices: ChatCompletionChoice[]
   usage: TokenUsage
-  model?: string
-  provider?: string
+  model?: string | undefined
+  provider?: string | undefined
 }
 
 export interface ChatCompletionChunk {
@@ -68,10 +69,10 @@ export interface ChatCompletionChunk {
 }
 
 export interface AdapterConfig {
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
-  maxRetries?: number
+  apiKey?: string | undefined
+  baseUrl?: string | undefined
+  timeout?: number | undefined
+  maxRetries?: number | undefined
   [key: string]: unknown
 }
 

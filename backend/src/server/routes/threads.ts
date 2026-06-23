@@ -1,7 +1,8 @@
 import { Router } from 'express'
 import type { Database } from 'better-sqlite3'
-import { ThreadRepository } from '../../storage/threads'
-import { MessageRepository } from '../../storage/messages'
+import type { Thread } from '../../types/thread.js'
+import { ThreadRepository } from '../../storage/threads.js'
+import { MessageRepository } from '../../storage/messages.js'
 
 export function createThreadsRouter(db: Database): Router {
   const router = Router()
@@ -34,8 +35,11 @@ export function createThreadsRouter(db: Database): Router {
 
   // Update thread (rename / archive)
   router.patch('/api/threads/:id', (req, res) => {
-    const { title, archived } = req.body as { title?: string; archived?: boolean }
-    const thread = threads.update(req.params['id']!, { title, archived })
+    const body = req.body as { title?: string; archived?: boolean }
+    const patch: Partial<Pick<Thread, 'title' | 'archived'>> = {}
+    if (body.title !== undefined) patch.title = body.title
+    if (body.archived !== undefined) patch.archived = body.archived
+    const thread = threads.update(req.params['id']!, patch)
     if (!thread) { res.status(404).json({ error: 'Thread not found' }); return }
     res.json(thread)
   })
@@ -65,13 +69,14 @@ export function createThreadsRouter(db: Database): Router {
       res.status(400).json({ error: 'role must be system, user, or assistant' })
       return
     }
-    const msg = messages.create({
+    const createInput: Parameters<typeof messages.create>[0] = {
       threadId: req.params['id']!,
       role: role as 'system' | 'user' | 'assistant',
       content,
-      providerId,
-      modelId,
-    })
+    }
+    if (providerId !== undefined) createInput.providerId = providerId
+    if (modelId !== undefined) createInput.modelId = modelId
+    const msg = messages.create(createInput)
     // Bump thread updatedAt so the list stays sorted by activity
     threads.update(req.params['id']!, {})
     res.status(201).json(msg)

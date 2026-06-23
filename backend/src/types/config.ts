@@ -1,16 +1,16 @@
 export interface AppConfig {
   port: number
   databasePath: string
-  zenBaseUrl?: string
-  zenApiKey?: string
+  zenBaseUrl?: string | undefined
+  zenApiKey?: string | undefined
   providers: Record<string, ProviderConfig>
 }
 
 export interface ProviderConfig {
   enabled: boolean
-  apiKey?: string
-  baseUrl?: string
-  timeout?: number
+  apiKey?: string | undefined
+  baseUrl?: string | undefined
+  timeout?: number | undefined
 }
 
 export function loadConfig(): AppConfig {

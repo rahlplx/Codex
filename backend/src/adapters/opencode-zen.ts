@@ -1,8 +1,8 @@
-import { AdapterBase } from './base'
+import { AdapterBase } from './base.js'
 import type {
   HealthStatus, QuotaStatus, Model,
   ChatCompletionRequest, ChatCompletionResponse, ChatCompletionChunk,
-} from '../types/adapter'
+} from '../types/adapter.js'
 
 const DEFAULT_BASE_URL = 'https://opencode.ai/zen/v1'
 
@@ -113,7 +113,7 @@ export class OpenCodeZenAdapter extends AdapterBase {
     const messages = req.messages.map(m => {
       const out: Record<string, unknown> = { role: m.role, content: m.content }
       // Pass reasoning_content back for thinking-mode continuations
-      const ext = m as Record<string, unknown>
+      const ext = m as unknown as Record<string, unknown>
       if (typeof ext['reasoning_content'] === 'string' && ext['reasoning_content']) {
         out['reasoning_content'] = ext['reasoning_content']
       }

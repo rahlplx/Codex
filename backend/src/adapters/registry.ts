@@ -1,4 +1,4 @@
-import type { ICliAdapter } from '../types/adapter'
+import type { ICliAdapter } from '../types/adapter.js'
 
 export class AdapterRegistry {
   private readonly adapters = new Map<string, ICliAdapter>()

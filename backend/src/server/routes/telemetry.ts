@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Database } from 'better-sqlite3'
-import { authGuard } from '../../auth/middleware'
+import { authGuard } from '../../auth/middleware.js'
 
 export function createTelemetryRouter(db: Database): Router {
   const router = Router()

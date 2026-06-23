@@ -1,6 +1,6 @@
 import { Router } from 'express'
-import type { AdapterRegistry } from '../../adapters/registry'
-import type { ProviderListResponse } from '../../types/provider'
+import type { AdapterRegistry } from '../../adapters/registry.js'
+import type { ProviderListResponse } from '../../types/provider.js'
 
 export function createProvidersRouter(registry: AdapterRegistry): Router {
   const router = Router()

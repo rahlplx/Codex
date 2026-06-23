@@ -1,7 +1,7 @@
 import { Router } from 'express'
-import type { AdapterRegistry } from '../../adapters/registry'
-import { Router as OrchestratorRouter, NoAdapterAvailableError } from '../../orchestrator/router'
-import type { ChatCompletionRequest } from '../../types/adapter'
+import type { AdapterRegistry } from '../../adapters/registry.js'
+import { Router as OrchestratorRouter, NoAdapterAvailableError } from '../../orchestrator/router.js'
+import type { ChatCompletionRequest } from '../../types/adapter.js'
 
 export function createChatRouter(registry: AdapterRegistry): Router {
   const router = Router()

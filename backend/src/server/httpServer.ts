@@ -1,14 +1,14 @@
 import express from 'express'
 import type { Database } from 'better-sqlite3'
-import { AdapterRegistry } from '../adapters/registry'
-import { healthRouter } from './routes/health'
-import { createProvidersRouter } from './routes/providers'
-import { createModelsRouter } from './routes/models'
-import { createChatRouter } from './routes/chat'
-import { createThreadsRouter } from './routes/threads'
-import { createAuthRouter } from './routes/auth'
-import { createAdminRouter } from './routes/admin'
-import { createTelemetryRouter } from './routes/telemetry'
+import { AdapterRegistry } from '../adapters/registry.js'
+import { healthRouter } from './routes/health.js'
+import { createProvidersRouter } from './routes/providers.js'
+import { createModelsRouter } from './routes/models.js'
+import { createChatRouter } from './routes/chat.js'
+import { createThreadsRouter } from './routes/threads.js'
+import { createAuthRouter } from './routes/auth.js'
+import { createAdminRouter } from './routes/admin.js'
+import { createTelemetryRouter } from './routes/telemetry.js'
 
 export function createApp(registry?: AdapterRegistry, db?: Database): express.Application {
   const reg = registry ?? new AdapterRegistry()

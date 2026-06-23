@@ -1,7 +1,7 @@
 import type {
   ICliAdapter, AdapterConfig, HealthStatus, QuotaStatus,
   Model, ChatCompletionRequest, ChatCompletionResponse, ChatCompletionChunk, Tier
-} from '../types/adapter'
+} from '../types/adapter.js'
 
 export abstract class AdapterBase implements ICliAdapter {
   abstract readonly id: string

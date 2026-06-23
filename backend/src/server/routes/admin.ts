@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Database } from 'better-sqlite3'
-import { authGuard, requireRole } from '../../auth/middleware'
+import { authGuard, requireRole } from '../../auth/middleware.js'
 
 export function createAdminRouter(db: Database): Router {
   const router = Router()
