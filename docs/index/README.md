@@ -76,6 +76,7 @@ Master catalog of all documents in this repository. Update this file whenever a 
 | File | Description |
 |------|-------------|
 | [README.md](../context/README.md) | Assembled context windows and prompt templates |
+| [agentic-bootstrap-prompt.md](../context/agentic-bootstrap-prompt.md) | Reusable prompt to bootstrap agentic engineering in any project |
 
 ## Brainstorming
 
