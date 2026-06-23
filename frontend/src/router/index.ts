@@ -28,6 +28,16 @@ const router = createRouter({
       component: EmptyRouteView,
     },
     {
+      path: '/providers',
+      name: 'providers',
+      component: EmptyRouteView,
+    },
+    {
+      path: '/models',
+      name: 'models',
+      component: EmptyRouteView,
+    },
+    {
       path: '/new-thread',
       redirect: { name: 'home' },
     },

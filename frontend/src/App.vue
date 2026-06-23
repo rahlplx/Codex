@@ -80,6 +80,38 @@
             </span>
           </button>
 
+          <button
+            v-if="!isSidebarCollapsed"
+            class="sidebar-skills-link"
+            :class="{ 'is-active': isProvidersRoute }"
+            type="button"
+            @click="router.push({ name: 'providers' }); isMobile && setSidebarCollapsed(true)"
+          >
+            <span class="sidebar-skills-link-icon" aria-hidden="true">
+              <IconTablerServer />
+            </span>
+            <span class="sidebar-skills-link-copy">
+              <span class="sidebar-skills-link-title">{{ t('Providers') }}</span>
+              <span class="sidebar-skills-link-subtitle">{{ t('Health & quota') }}</span>
+            </span>
+          </button>
+
+          <button
+            v-if="!isSidebarCollapsed"
+            class="sidebar-skills-link"
+            :class="{ 'is-active': isModelsRoute }"
+            type="button"
+            @click="router.push({ name: 'models' }); isMobile && setSidebarCollapsed(true)"
+          >
+            <span class="sidebar-skills-link-icon" aria-hidden="true">
+              <IconTablerBrain />
+            </span>
+            <span class="sidebar-skills-link-copy">
+              <span class="sidebar-skills-link-title">{{ t('Models') }}</span>
+              <span class="sidebar-skills-link-subtitle">{{ t('Browse catalog') }}</span>
+            </span>
+          </button>
+
           <SidebarThreadTree ref="sidebarThreadTreeRef" :groups="projectGroups" :project-display-name-by-id="projectDisplayNameById"
             :project-git-repo-by-name="projectGitRepoByName"
             :project-cwd-by-name="projectCwdByName"
@@ -521,7 +553,7 @@
         :style="contentStyle"
       >
         <span v-if="isVirtualKeyboardOpen" class="content-keyboard-spacer" aria-hidden="true" />
-        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute">
+        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute || isProvidersRoute || isModelsRoute">
           <template #leading>
             <SidebarThreadControls
               v-if="isSidebarCollapsed || isMobile"
@@ -536,6 +568,12 @@
             </span>
             <span v-else-if="isAutomationsRoute" class="skills-route-header-icon automations-route-header-icon" aria-hidden="true">
               <IconTablerBolt />
+            </span>
+            <span v-else-if="isProvidersRoute" class="skills-route-header-icon" aria-hidden="true">
+              <IconTablerServer />
+            </span>
+            <span v-else-if="isModelsRoute" class="skills-route-header-icon" aria-hidden="true">
+              <IconTablerBrain />
             </span>
           </template>
           <template #actions>
@@ -605,6 +643,12 @@
               @edit-automation="onEditAutomationFromPanel"
               @create-automation="onCreateAutomationFromPanel"
             />
+          </template>
+          <template v-else-if="isProvidersRoute">
+            <ProviderDashboard />
+          </template>
+          <template v-else-if="isModelsRoute">
+            <ModelCatalog />
           </template>
           <template v-else-if="isHomeRoute">
             <div class="content-grid content-grid-home">
@@ -1181,6 +1225,8 @@ import HeaderGitBranchDropdown from './components/content/HeaderGitBranchDropdow
 import ComposerRuntimeDropdown from './components/content/ComposerRuntimeDropdown.vue'
 import SidebarThreadControls from './components/sidebar/SidebarThreadControls.vue'
 import IconTablerBolt from './components/icons/IconTablerBolt.vue'
+import IconTablerServer from './components/icons/IconTablerServer.vue'
+import IconTablerBrain from './components/icons/IconTablerBrain.vue'
 import IconTablerSearch from './components/icons/IconTablerSearch.vue'
 import IconTablerSettings from './components/icons/IconTablerSettings.vue'
 import IconTablerTerminal from './components/icons/IconTablerTerminal.vue'
@@ -1237,6 +1283,8 @@ const ThreadTerminalPanel = defineAsyncComponent(() => import('./components/cont
 const ReviewPane = defineAsyncComponent(() => import('./components/content/ReviewPane.vue'))
 const DirectoryHub = defineAsyncComponent(() => import('./components/content/DirectoryHub.vue'))
 const AutomationsPanel = defineAsyncComponent(() => import('./components/content/AutomationsPanel.vue'))
+const ProviderDashboard = defineAsyncComponent(() => import('./components/content/ProviderDashboard.vue'))
+const ModelCatalog = defineAsyncComponent(() => import('./components/content/ModelCatalog.vue'))
 const { t, uiLanguage, uiLanguageOptions, setUiLanguage } = useUiLanguage()
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codex-web-local.sidebar-collapsed.v1'
@@ -1731,6 +1779,8 @@ const routeThreadId = computed(() => {
 const isHomeRoute = computed(() => route.name === 'home')
 const isSkillsRoute = computed(() => route.name === 'skills')
 const isAutomationsRoute = computed(() => route.name === 'automations')
+const isProvidersRoute = computed(() => route.name === 'providers')
+const isModelsRoute = computed(() => route.name === 'models')
 const routeAutomationId = computed(() => {
   const raw = route.query.automationId
   return typeof raw === 'string' ? raw : ''
@@ -1738,6 +1788,8 @@ const routeAutomationId = computed(() => {
 const contentTitle = computed(() => {
   if (isAutomationsRoute.value) return t('Automations')
   if (isSkillsRoute.value) return t('Skills')
+  if (isProvidersRoute.value) return t('Providers')
+  if (isModelsRoute.value) return t('Models')
   if (isHomeRoute.value) return t('Start new thread')
   return selectedThread.value?.title ?? t('Choose a thread')
 })

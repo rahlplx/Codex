@@ -26,10 +26,10 @@ export class Router {
       adapters.map(async adapter => {
         const [health, quota] = await Promise.all([
           adapter.healthCheck().catch(() => ({ healthy: false, latencyMs: 0, score: 0 })),
-          adapter.getQuota().catch(() => ({ unlimited: false, remaining: 0, resetAt: null })),
+          adapter.getQuota().catch(() => ({ unlimited: false, remaining: null, resetAt: null })),
         ])
 
-        const quotaOk = quota.unlimited || (quota.remaining !== null && quota.remaining > 0)
+        const quotaOk = quota.unlimited || quota.remaining === null || quota.remaining > 0
         if (health.healthy && quotaOk) {
           scored.push({ adapter, score: health.score })
         }

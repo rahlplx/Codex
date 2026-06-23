@@ -11,7 +11,7 @@ export function createProvidersRouter(registry: AdapterRegistry): Router {
       adapters.map(async adapter => {
         const [health, quota, models] = await Promise.all([
           adapter.healthCheck().catch(err => ({ healthy: false, latencyMs: 0, score: 0, error: String(err) })),
-          adapter.getQuota().catch(() => ({ unlimited: false, remaining: 0, resetAt: null })),
+          adapter.getQuota().catch(() => ({ unlimited: false, remaining: null, resetAt: null })),
           adapter.supportedModels().catch(() => []),
         ])
         return {
@@ -20,7 +20,7 @@ export function createProvidersRouter(registry: AdapterRegistry): Router {
           tier: adapter.tier,
           health,
           quota,
-          models,
+          models: Array.isArray(models) ? models : [],
           enabled: true,
         }
       })

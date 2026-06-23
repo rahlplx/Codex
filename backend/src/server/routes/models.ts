@@ -9,7 +9,7 @@ export function createModelsRouter(registry: AdapterRegistry): Router {
     const modelSets = await Promise.all(
       adapters.map(async adapter => {
         const models = await adapter.supportedModels().catch(() => [])
-        return models.map(m => ({ ...m, provider: adapter.id }))
+        return (Array.isArray(models) ? models : []).map(m => ({ ...m, provider: adapter.id }))
       })
     )
     res.json({ models: modelSets.flat(), ts: new Date().toISOString() })
