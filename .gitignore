@@ -2,6 +2,7 @@
 logs/telemetry/*.jsonl
 logs/sessions/*.md
 backend/logs/
+frontend/logs/
 
 # Keep structure markers
 !logs/telemetry/.gitkeep
