@@ -9,7 +9,7 @@ interface MessageRow {
   content: string
   provider_id: string | null
   model_id: string | null
-  ts: number
+  ts: string
 }
 
 function rowToMessage(row: MessageRow): Message {
@@ -35,7 +35,7 @@ export class MessageRepository {
     modelId?: string
   }): Message {
     const id = randomUUID()
-    const ts = Date.now()
+    const ts = new Date().toISOString()
     this.db.prepare(`
       INSERT INTO messages (id, thread_id, role, content, provider_id, model_id, ts)
       VALUES (?, ?, ?, ?, ?, ?, ?)

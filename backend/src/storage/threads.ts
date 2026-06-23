@@ -6,8 +6,8 @@ interface ThreadRow {
   id: string
   user_id: string
   title: string
-  created_at: number
-  updated_at: number
+  created_at: string
+  updated_at: string
   archived: number
 }
 
@@ -27,7 +27,7 @@ export class ThreadRepository {
 
   create(input: { userId: string; title: string; archived: boolean }): Thread {
     const id = randomUUID()
-    const now = Date.now()
+    const now = new Date().toISOString()
     this.db.prepare(`
       INSERT INTO threads (id, user_id, title, created_at, updated_at, archived)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -55,7 +55,7 @@ export class ThreadRepository {
 
     const title = patch.title ?? existing.title
     const archived = patch.archived ?? existing.archived
-    const now = Date.now()
+    const now = new Date().toISOString()
 
     this.db.prepare(`
       UPDATE threads SET title = ?, archived = ?, updated_at = ? WHERE id = ?

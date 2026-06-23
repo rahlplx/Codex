@@ -47,8 +47,8 @@ export function openDatabase(path: string): Database {
       id         TEXT PRIMARY KEY,
       user_id    TEXT NOT NULL,
       title      TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       archived   INTEGER NOT NULL DEFAULT 0
     );
 
@@ -59,7 +59,7 @@ export function openDatabase(path: string): Database {
       content     TEXT NOT NULL,
       provider_id TEXT,
       model_id    TEXT,
-      ts          INTEGER NOT NULL
+      ts          TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE INDEX IF NOT EXISTS idx_tenants_email ON tenants(email);

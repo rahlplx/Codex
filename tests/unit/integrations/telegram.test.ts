@@ -398,3 +398,63 @@ describe('TelegramBotBridge — fetchUpdates', () => {
     expect(body.parse_mode).toBeUndefined()
   })
 })
+
+describe('TelegramBotBridge — thread creation race condition', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  function makeChatMock() {
+    let threadCreateCount = 0
+    const fetchMock = vi.fn().mockImplementation((url: string, opts?: { method?: string; body?: string }) => {
+      if (typeof url === 'string' && url.includes('/api/threads') && opts?.method === 'POST' && !url.includes('/messages')) {
+        threadCreateCount++
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: `thread-${threadCreateCount}`, title: 'T' }) })
+      }
+      if (typeof url === 'string' && url.includes('/messages') && opts?.method === 'POST') {
+        return Promise.resolve({ ok: true })
+      }
+      if (typeof url === 'string' && url.includes('/messages') && !opts?.method) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve([{ role: 'user', content: 'test' }]) })
+      }
+      if (typeof url === 'string' && url.includes('/api/chat/completions')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ choices: [{ message: { content: 'reply' } }] }) })
+      }
+      if (typeof url === 'string' && url.includes('sendMessage')) {
+        return Promise.resolve({ ok: true })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    })
+    return { fetchMock, getThreadCreateCount: () => threadCreateCount }
+  }
+
+  it('two /chat messages for same chatId in one poll batch create only one thread', async () => {
+    const { fetchMock, getThreadCreateCount } = makeChatMock()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    const update1 = { update_id: 1, message: { message_id: 1, text: '/chat msg1', from: { id: 100, first_name: 'Test' }, chat: { id: 300 } } }
+    const update2 = { update_id: 2, message: { message_id: 2, text: '/chat msg2', from: { id: 100, first_name: 'Test' }, chat: { id: 300 } } }
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ok: true, result: [update1, update2] }) })
+    await bridge.fetchUpdates()
+
+    expect(getThreadCreateCount()).toBe(1)
+    expect(bridge.getMappedChats()).toBe(1)
+  })
+
+  it('two /chat messages for different chatIds each create their own thread', async () => {
+    const { fetchMock, getThreadCreateCount } = makeChatMock()
+    vi.stubGlobal('fetch', fetchMock)
+
+    const bridge = makeBridge()
+    const update1 = { update_id: 1, message: { message_id: 1, text: '/chat msg1', from: { id: 100, first_name: 'Alice' }, chat: { id: 400 } } }
+    const update2 = { update_id: 2, message: { message_id: 2, text: '/chat msg2', from: { id: 100, first_name: 'Alice' }, chat: { id: 500 } } }
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ ok: true, result: [update1, update2] }) })
+    await bridge.fetchUpdates()
+
+    expect(getThreadCreateCount()).toBe(2)
+    expect(bridge.getMappedChats()).toBe(2)
+  })
+})

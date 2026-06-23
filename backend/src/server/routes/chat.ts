@@ -1,9 +1,11 @@
 import { Router } from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import type { Database } from 'better-sqlite3'
 import type { AdapterRegistry } from '../../adapters/registry.js'
 import { Router as OrchestratorRouter, NoAdapterAvailableError } from '../../orchestrator/router.js'
 import type { ChatCompletionRequest } from '../../types/adapter.js'
 import { authGuard } from '../../auth/middleware.js'
+import { quotaGuard } from '../../auth/quota.js'
 
 export function createChatRouter(registry: AdapterRegistry, db?: Database): Router {
   const router = Router()
@@ -14,7 +16,11 @@ export function createChatRouter(registry: AdapterRegistry, db?: Database): Rout
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
 
-  router.post('/api/chat/completions', authGuard, async (req, res) => {
+  const quotaMiddleware = db
+    ? quotaGuard(db)
+    : (_req: Request, _res: Response, next: NextFunction) => { next() }
+
+  router.post('/api/chat/completions', authGuard, quotaMiddleware, async (req, res) => {
     const { messages, model, stream, temperature, max_tokens } = req.body as Record<string, unknown>
 
     if (!Array.isArray(messages) || messages.length === 0) {

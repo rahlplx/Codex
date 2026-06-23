@@ -70,7 +70,7 @@ if (telegramBridge) {
   console.log('Telegram bot bridge started')
 }
 
-const app = createApp(registry, db)
+const app = createApp(registry, db, scanner)
 
 const server = app.listen(config.port, () => {
   console.log(`Codex backend listening on :${config.port}`)

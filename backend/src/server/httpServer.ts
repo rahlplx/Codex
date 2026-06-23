@@ -5,6 +5,7 @@ import { AdapterRegistry } from '../adapters/registry.js'
 import { createHealthRouter } from './routes/health.js'
 import { createProvidersRouter } from './routes/providers.js'
 import { createModelsRouter } from './routes/models.js'
+import type { ModelDiscoveryScanner } from '../discovery/scanner.js'
 import { createChatRouter } from './routes/chat.js'
 import { createThreadsRouter } from './routes/threads.js'
 import { createAuthRouter } from './routes/auth.js'
@@ -35,7 +36,7 @@ function corsMiddleware(req: Request, res: Response, next: NextFunction): void {
   next()
 }
 
-export function createApp(registry?: AdapterRegistry, db?: Database): express.Application {
+export function createApp(registry?: AdapterRegistry, db?: Database, scanner?: ModelDiscoveryScanner): express.Application {
   const reg = registry ?? new AdapterRegistry()
   const app = express()
 
@@ -44,7 +45,7 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
 
   app.use(createHealthRouter(db))
   app.use(createProvidersRouter(reg))
-  app.use(createModelsRouter(reg))
+  app.use(createModelsRouter(reg, scanner))
   app.use(createChatRouter(reg, db))
   if (db) {
     app.use(createThreadsRouter(db))

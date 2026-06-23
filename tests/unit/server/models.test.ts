@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import request from 'supertest'
 import express from 'express'
 import { AdapterRegistry } from '../../../backend/src/adapters/registry.js'
 import { createModelsRouter } from '../../../backend/src/server/routes/models.js'
+import { ModelDiscoveryScanner } from '../../../backend/src/discovery/scanner.js'
 import type { ICliAdapter } from '../../../backend/src/types/adapter.js'
 import { generateToken } from '../../../backend/src/auth/jwt.js'
 
@@ -31,10 +32,10 @@ function makeAdapter(id: string, models: Array<{ id: string; name: string }>): I
   }
 }
 
-function buildApp(registry: AdapterRegistry) {
+function buildApp(registry: AdapterRegistry, scanner?: ModelDiscoveryScanner) {
   const app = express()
   app.use(express.json())
-  app.use(createModelsRouter(registry))
+  app.use(createModelsRouter(registry, scanner))
   return app
 }
 
@@ -86,5 +87,46 @@ describe('Models API', () => {
     expect(res.status).toBe(200)
     expect(res.body.models).toHaveLength(1)
     expect(res.body.models[0].id).toBe('ok-model')
+  })
+})
+
+describe('Models API — scanner catalog', () => {
+  let registry: AdapterRegistry
+
+  beforeEach(() => {
+    registry = new AdapterRegistry()
+  })
+
+  it('uses scanner catalog when available, skipping direct adapter calls', async () => {
+    const adapter = makeAdapter('alpha', [{ id: 'model-a', name: 'Model A' }])
+    const spy = vi.spyOn(adapter, 'supportedModels')
+    registry.register(adapter)
+
+    const scanner = new ModelDiscoveryScanner(registry)
+    await scanner.scan()
+
+    const app = buildApp(registry, scanner)
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
+    expect(res.status).toBe(200)
+    expect(res.body.models.length).toBeGreaterThan(0)
+    expect(res.body.models[0].provider).toBe('alpha')
+
+    // scanner.scan() called supportedModels once; the HTTP request should NOT call it again
+    const callsBeforeRequest = spy.mock.calls.length
+    await request(app).get('/api/models').set(AUTH_HEADER)
+    expect(spy.mock.calls.length).toBe(callsBeforeRequest)
+  })
+
+  it('falls back to direct calls when scanner catalog is empty', async () => {
+    registry.register(makeAdapter('beta', [{ id: 'model-b', name: 'Model B' }]))
+
+    const scanner = new ModelDiscoveryScanner(registry)
+    // Don't scan — catalog stays empty
+
+    const app = buildApp(registry, scanner)
+    const res = await request(app).get('/api/models').set(AUTH_HEADER)
+    expect(res.status).toBe(200)
+    expect(res.body.models).toHaveLength(1)
+    expect(res.body.models[0].id).toBe('model-b')
   })
 })

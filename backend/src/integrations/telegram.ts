@@ -25,6 +25,7 @@ export class TelegramBotBridge {
   private pollTimer: ReturnType<typeof setTimeout> | null = null
   private chatThreadMap = new Map<number, string>()
   private tokenCache = new Map<number, { token: string; expiresAt: number }>()
+  private chatLocks = new Map<number, Promise<void>>()
 
   constructor(private readonly config: TelegramBotConfig) {}
 
@@ -91,6 +92,7 @@ export class TelegramBotBridge {
 
     const text = msg.text.trim()
     const from = msg.from
+    const chatId = msg.chat.id
 
     const token = this.getOrCreateToken(from.id)
     const authHeaders: Record<string, string> = {
@@ -99,7 +101,7 @@ export class TelegramBotBridge {
     }
 
     if (text === '/start' || text === '/help') {
-      await this.sendMessage(msg.chat.id, [
+      await this.sendMessage(chatId, [
         'Codex AI Bot',
         '',
         '/newthread - Create a new conversation',
@@ -110,15 +112,15 @@ export class TelegramBotBridge {
     }
 
     if (text === '/newthread') {
-      const thread = await this.createThread(msg.chat.id, from, token)
+      const thread = await this.createThread(chatId, from, token)
       if (!thread) return
-      await this.sendMessage(msg.chat.id, `Thread created: ${thread.title} (${thread.id})`)
+      await this.sendMessage(chatId, `Thread created: ${thread.title} (${thread.id})`)
       return
     }
 
     if (text === '/status') {
-      const threadId = this.chatThreadMap.get(msg.chat.id)
-      await this.sendMessage(msg.chat.id, threadId
+      const threadId = this.chatThreadMap.get(chatId)
+      await this.sendMessage(chatId, threadId
         ? `Connected to thread: ${threadId}`
         : 'No thread connected. Use /newthread to create one.')
       return
@@ -127,59 +129,68 @@ export class TelegramBotBridge {
     if (text === '/chat' || text.startsWith('/chat ')) {
       const content = text.slice(5).trim()
       if (!content) {
-        await this.sendMessage(msg.chat.id, 'Usage: /chat <your message>')
+        await this.sendMessage(chatId, 'Usage: /chat <your message>')
         return
       }
 
-      let threadId = this.chatThreadMap.get(msg.chat.id)
-      if (!threadId) {
-        const thread = await this.createThread(msg.chat.id, from, token)
-        if (!thread) return
-        threadId = thread.id
-      }
+      await this.withChatLock(chatId, async () => {
+        let threadId = this.chatThreadMap.get(chatId)
+        if (!threadId) {
+          const thread = await this.createThread(chatId, from, token)
+          if (!thread) return
+          threadId = thread.id
+        }
 
-      await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ role: 'user', content }),
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ role: 'user', content }),
+          signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        })
+
+        const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        })
+        let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
+        if (historyRes.ok) {
+          const history = await historyRes.json() as Array<{ role: string; content: string }>
+          if (history.length > 0) messages = history
+        }
+
+        const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ messages, stream: false }),
+          signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        })
+        if (!completionRes.ok) {
+          await this.sendMessage(chatId, 'AI request failed.')
+          return
+        }
+        const completion = await completionRes.json() as { choices?: Array<{ message?: { content?: string } }> }
+        const reply = completion.choices?.[0]?.message?.content ?? '(no response)'
+
+        await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ role: 'assistant', content: reply }),
+          signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
+        })
+
+        await this.sendMessage(chatId, reply)
       })
-
-      const historyRes = await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-      })
-      let messages: Array<{ role: string; content: string }> = [{ role: 'user', content }]
-      if (historyRes.ok) {
-        const history = await historyRes.json() as Array<{ role: string; content: string }>
-        if (history.length > 0) messages = history
-      }
-
-      const completionRes = await fetch(`${this.config.backendUrl}/api/chat/completions`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ messages, stream: false }),
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-      })
-      if (!completionRes.ok) {
-        await this.sendMessage(msg.chat.id, 'AI request failed.')
-        return
-      }
-      const completion = await completionRes.json() as { choices?: Array<{ message?: { content?: string } }> }
-      const reply = completion.choices?.[0]?.message?.content ?? '(no response)'
-
-      await fetch(`${this.config.backendUrl}/api/threads/${threadId}/messages`, {
-        method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({ role: 'assistant', content: reply }),
-        signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
-      })
-
-      await this.sendMessage(msg.chat.id, reply)
       return
     }
 
-    await this.sendMessage(msg.chat.id, 'Unknown command. Use /help to see available commands.')
+    await this.sendMessage(chatId, 'Unknown command. Use /help to see available commands.')
+  }
+
+  private async withChatLock(chatId: number, fn: () => Promise<void>): Promise<void> {
+    const prev = this.chatLocks.get(chatId) ?? Promise.resolve()
+    const next = prev.then(fn, fn)
+    this.chatLocks.set(chatId, next)
+    await next
   }
 
   private getOrCreateToken(userId: number): string {
