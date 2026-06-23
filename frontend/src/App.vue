@@ -555,6 +555,41 @@
                   </button>
                 </div>
               </div>
+              <button class="sidebar-settings-row" type="button" aria-live="polite" @click="isCliAdaptersOpen = !isCliAdaptersOpen">
+                <span class="sidebar-settings-label">{{ t('CLI Adapters') }}</span>
+                <span class="sidebar-settings-value">{{ cliAdaptersStatusText }}</span>
+              </button>
+              <div v-if="isCliAdaptersOpen" class="sidebar-settings-cli-panel">
+                <div v-for="adapter in CLI_ADAPTERS" :key="adapter.id" class="sidebar-settings-cli-row">
+                  <span
+                    class="sidebar-settings-cli-dot"
+                    :class="{
+                      'is-healthy': cliAdapterStatus[adapter.id] === 'healthy',
+                      'is-degraded': cliAdapterStatus[adapter.id] === 'degraded',
+                      'is-error': cliAdapterStatus[adapter.id] === 'error',
+                    }"
+                  />
+                  <span class="sidebar-settings-cli-name">{{ adapter.name }}</span>
+                  <span class="sidebar-settings-cli-tier" :class="`is-${adapter.tier}`">{{ adapter.tier }}</span>
+                  <span
+                    class="sidebar-settings-toggle"
+                    :class="{ 'is-on': cliAdapterEnabled[adapter.id] !== false }"
+                    role="switch"
+                    :aria-checked="cliAdapterEnabled[adapter.id] !== false"
+                    tabindex="0"
+                    @click="toggleCliAdapter(adapter.id)"
+                    @keydown.space.prevent="toggleCliAdapter(adapter.id)"
+                    @keydown.enter.prevent="toggleCliAdapter(adapter.id)"
+                  />
+                </div>
+                <button
+                  class="sidebar-settings-cli-link"
+                  type="button"
+                  @click="router.push({ name: 'providers' }); isCliAdaptersOpen = false; isMobile && setSidebarCollapsed(true)"
+                >
+                  {{ t('View health dashboard →') }}
+                </button>
+              </div>
               <div
                 v-if="showThreadContextBadge"
                 class="sidebar-settings-row sidebar-settings-context-row"
@@ -1735,6 +1770,15 @@ const DARK_MODE_KEY = 'codex-web-local.dark-mode.v1'
 const DICTATION_CLICK_TO_TOGGLE_KEY = 'codex-web-local.dictation-click-to-toggle.v1'
 const DICTATION_AUTO_SEND_KEY = 'codex-web-local.dictation-auto-send.v1'
 const DICTATION_LANGUAGE_KEY = 'codex-web-local.dictation-language.v1'
+const CLI_ADAPTERS_ENABLED_KEY = 'codex-web-local.cli-adapters-enabled.v1'
+
+const CLI_ADAPTERS = [
+  { id: 'opencode-zen', name: 'OpenCode Zen', tier: 'free' },
+  { id: 'nemotron', name: 'Nemotron', tier: 'free' },
+  { id: 'openrouter-free', name: 'OpenRouter Free', tier: 'freemium' },
+  { id: 'antigravity', name: 'Antigravity', tier: 'free' },
+  { id: 'kilocode', name: 'KiloCode', tier: 'freemium' },
+] as const
 
 const CHAT_WIDTH_KEY = 'codex-web-local.chat-width.v1'
 const MOBILE_RESUME_RELOAD_MIN_HIDDEN_MS = 400
@@ -1781,6 +1825,11 @@ const customEndpointWireApi = ref<'responses' | 'chat'>('responses')
 const openRouterWireApi = ref<'responses' | 'chat'>('responses')
 const opencodeZenKey = ref('')
 const isTelegramConfigOpen = ref(false)
+const isCliAdaptersOpen = ref(false)
+const cliAdapterEnabled = ref<Record<string, boolean>>((() => {
+  try { return JSON.parse(window.localStorage.getItem(CLI_ADAPTERS_ENABLED_KEY) ?? '{}') as Record<string, boolean> } catch { return {} }
+})())
+const cliAdapterStatus = ref<Record<string, string>>({})
 const telegramBotTokenDraft = ref('')
 const telegramAllowedUserIdsDraft = ref('')
 const telegramConfigError = ref('')
@@ -2253,6 +2302,35 @@ const telegramStatusText = computed(() => {
   const error = telegramStatus.value.lastError ? `, ${t('error')}: ${telegramStatus.value.lastError}` : ''
   return `${base}, ${mapped}${error}`
 })
+
+const cliAdaptersStatusText = computed(() => {
+  const enabled = CLI_ADAPTERS.filter(a => cliAdapterEnabled.value[a.id] !== false).length
+  const healthy = CLI_ADAPTERS.filter(a => cliAdapterStatus.value[a.id] === 'healthy').length
+  const hasLive = Object.keys(cliAdapterStatus.value).length > 0
+  return hasLive
+    ? `${healthy} healthy · ${enabled}/${CLI_ADAPTERS.length} on`
+    : `${enabled}/${CLI_ADAPTERS.length} enabled`
+})
+
+async function fetchCliAdapterStatus() {
+  try {
+    const res = await fetch('/api/providers')
+    if (!res.ok) return
+    const data = await res.json() as Array<{ id: string; status: string }>
+    if (!Array.isArray(data)) return
+    const map: Record<string, string> = {}
+    for (const p of data) { if (p.id) map[p.id] = p.status }
+    cliAdapterStatus.value = map
+  } catch {}
+}
+
+function toggleCliAdapter(id: string) {
+  const current = cliAdapterEnabled.value[id] !== false
+  cliAdapterEnabled.value = { ...cliAdapterEnabled.value, [id]: !current }
+  window.localStorage.setItem(CLI_ADAPTERS_ENABLED_KEY, JSON.stringify(cliAdapterEnabled.value))
+}
+
+watch(isCliAdaptersOpen, (open) => { if (open) fetchCliAdapterStatus() })
 
 onMounted(() => {
   document.addEventListener('pointerdown', onDocumentPointerDown)
@@ -5791,6 +5869,62 @@ async function loadWorktreeBranches(sourceCwd: string): Promise<void> {
 
 .sidebar-settings-telegram-save {
   @apply rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-default disabled:opacity-60;
+}
+
+.sidebar-settings-cli-panel {
+  @apply border-t border-zinc-100 bg-zinc-50/70 flex flex-col py-1;
+}
+
+.sidebar-settings-cli-row {
+  @apply flex items-center gap-2 px-3 py-2;
+}
+
+.sidebar-settings-cli-dot {
+  @apply w-2 h-2 rounded-full bg-zinc-300 shrink-0;
+}
+
+.sidebar-settings-cli-dot.is-healthy { @apply bg-emerald-400; }
+.sidebar-settings-cli-dot.is-degraded { @apply bg-amber-400; }
+.sidebar-settings-cli-dot.is-error { @apply bg-rose-400; }
+
+.sidebar-settings-cli-name {
+  @apply flex-1 text-sm text-zinc-700;
+}
+
+.sidebar-settings-cli-tier {
+  @apply text-xs px-1.5 py-0.5 rounded-full font-medium;
+}
+
+.sidebar-settings-cli-tier.is-free {
+  @apply bg-emerald-100 text-emerald-700;
+}
+
+.sidebar-settings-cli-tier.is-freemium {
+  @apply bg-amber-100 text-amber-700;
+}
+
+.sidebar-settings-cli-link {
+  @apply text-xs text-zinc-400 hover:text-zinc-600 px-3 py-1.5 text-left transition cursor-pointer;
+}
+
+:root.dark .sidebar-settings-cli-panel {
+  @apply border-zinc-700 bg-zinc-900/50;
+}
+
+:root.dark .sidebar-settings-cli-name {
+  @apply text-zinc-300;
+}
+
+:root.dark .sidebar-settings-cli-tier.is-free {
+  @apply bg-emerald-900 text-emerald-300;
+}
+
+:root.dark .sidebar-settings-cli-tier.is-freemium {
+  @apply bg-amber-900 text-amber-300;
+}
+
+:root.dark .sidebar-settings-cli-link {
+  @apply text-zinc-500 hover:text-zinc-200;
 }
 
 .sidebar-settings-account-section {
