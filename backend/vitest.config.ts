@@ -6,6 +6,7 @@ export default defineConfig({
       '../tests/unit/adapters/**/*.test.ts',
       '../tests/unit/orchestrator/**/*.test.ts',
       '../tests/unit/server/**/*.test.ts',
+      '../tests/unit/storage/**/*.test.ts',
       '../tests/integration/backend/**/*.test.ts',
     ],
     environment: 'node',
