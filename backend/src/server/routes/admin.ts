@@ -45,9 +45,19 @@ export function createAdminRouter(db: Database): Router {
       res.status(400).json({ error: 'Cannot delete your own account' })
       return
     }
-    const result = db.prepare('DELETE FROM tenants WHERE id = ?').run(req.params.id)
-    if (result.changes === 0) { res.status(404).json({ error: 'Tenant not found' }); return }
-    res.json({ deleted: true })
+    try {
+      // Delete tenant and all owned data in one transaction.
+      // threads has no FK cascade to tenants, so we clean up explicitly.
+      const deleted = db.transaction(() => {
+        db.prepare('DELETE FROM threads WHERE user_id = ?').run(req.params.id)
+        const r = db.prepare('DELETE FROM tenants WHERE id = ?').run(req.params.id)
+        return r.changes
+      })()
+      if (deleted === 0) { res.status(404).json({ error: 'Tenant not found' }); return }
+      res.json({ deleted: true })
+    } catch {
+      res.status(500).json({ error: 'Internal server error' })
+    }
   })
 
   return router

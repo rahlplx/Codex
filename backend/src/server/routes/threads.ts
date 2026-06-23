@@ -47,7 +47,7 @@ export function createThreadsRouter(db: Database): Router {
     if (!existing) { res.status(404).json({ error: 'Thread not found' }); return }
     if (existing.userId !== req.tenant!.sub) { res.status(403).json({ error: 'Forbidden' }); return }
     const patch: Partial<Pick<Thread, 'title' | 'archived'>> = {}
-    if (typeof body.title === 'string') patch.title = body.title
+    if (typeof body.title === 'string') patch.title = body.title.slice(0, 200)
     if (typeof body.archived === 'boolean') patch.archived = body.archived
     const thread = threads.update(req.params['id']!, patch)
     if (!thread) { res.status(404).json({ error: 'Thread not found' }); return }

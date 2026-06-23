@@ -1,11 +1,12 @@
 import { Router } from 'express'
 import type { DomainScoreRepository } from '../../storage/domainScores.js'
 import { getRoutingPrefs, setAutoRouting, setDisabledAdapters } from '../../orchestrator/routingPrefs.js'
+import { authGuard, requireRole } from '../../auth/middleware.js'
 
 export function createRoutingRouter(domainScores: DomainScoreRepository): Router {
   const router = Router()
 
-  router.get('/api/routing/auto-stats', (_req, res) => {
+  router.get('/api/routing/auto-stats', authGuard, (_req, res) => {
     const prefs = getRoutingPrefs()
     const rankings = domainScores.getRankings()
     res.json({
@@ -22,7 +23,7 @@ export function createRoutingRouter(domainScores: DomainScoreRepository): Router
     })
   })
 
-  router.post('/api/routing/preferences', (req, res) => {
+  router.post('/api/routing/preferences', authGuard, requireRole('admin'), (req, res) => {
     const body = req.body as { autoRouting?: unknown; disabledAdapters?: unknown }
     if (typeof body.autoRouting === 'boolean') setAutoRouting(body.autoRouting)
     if (Array.isArray(body.disabledAdapters) && body.disabledAdapters.every(x => typeof x === 'string')) {

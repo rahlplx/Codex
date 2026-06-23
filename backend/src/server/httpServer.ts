@@ -41,6 +41,8 @@ export function createApp(registry?: AdapterRegistry, db?: Database): express.Ap
   const reg = registry ?? new AdapterRegistry()
   const app = express()
 
+  // Trust the first proxy hop (Caddy) so req.ip reflects the real client IP
+  app.set('trust proxy', 1)
   app.use(corsMiddleware)
   app.use(express.json({ limit: '1mb' }))
 
