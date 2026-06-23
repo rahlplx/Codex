@@ -128,6 +128,38 @@
             </span>
           </button>
 
+          <button
+            v-if="!isSidebarCollapsed"
+            class="sidebar-skills-link"
+            :class="{ 'is-active': isTelemetryRoute }"
+            type="button"
+            @click="router.push({ name: 'telemetry' }); isMobile && setSidebarCollapsed(true)"
+          >
+            <span class="sidebar-skills-link-icon" aria-hidden="true">
+              <IconTablerChartBar />
+            </span>
+            <span class="sidebar-skills-link-copy">
+              <span class="sidebar-skills-link-title">{{ t('Telemetry') }}</span>
+              <span class="sidebar-skills-link-subtitle">{{ t('Usage & rankings') }}</span>
+            </span>
+          </button>
+
+          <button
+            v-if="!isSidebarCollapsed && isAdmin"
+            class="sidebar-skills-link"
+            :class="{ 'is-active': isAdminRoute }"
+            type="button"
+            @click="router.push({ name: 'admin' }); isMobile && setSidebarCollapsed(true)"
+          >
+            <span class="sidebar-skills-link-icon" aria-hidden="true">
+              <IconTablerShield />
+            </span>
+            <span class="sidebar-skills-link-copy">
+              <span class="sidebar-skills-link-title">{{ t('Admin') }}</span>
+              <span class="sidebar-skills-link-subtitle">{{ t('Tenants & settings') }}</span>
+            </span>
+          </button>
+
           <SidebarThreadTree ref="sidebarThreadTreeRef" :groups="projectGroups" :project-display-name-by-id="projectDisplayNameById"
             :project-git-repo-by-name="projectGitRepoByName"
             :project-cwd-by-name="projectCwdByName"
@@ -569,7 +601,7 @@
         :style="contentStyle"
       >
         <span v-if="isVirtualKeyboardOpen" class="content-keyboard-spacer" aria-hidden="true" />
-        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute || isChatRoute || isProvidersRoute || isModelsRoute">
+        <ContentHeader :title="contentTitle" :accent="isSkillsRoute || isAutomationsRoute || isChatRoute || isProvidersRoute || isModelsRoute || isTelemetryRoute || isAdminRoute">
           <template #leading>
             <SidebarThreadControls
               v-if="isSidebarCollapsed || isMobile"
@@ -593,6 +625,12 @@
             </span>
             <span v-else-if="isModelsRoute" class="skills-route-header-icon" aria-hidden="true">
               <IconTablerBrain />
+            </span>
+            <span v-else-if="isTelemetryRoute" class="skills-route-header-icon" aria-hidden="true">
+              <IconTablerChartBar />
+            </span>
+            <span v-else-if="isAdminRoute" class="skills-route-header-icon" aria-hidden="true">
+              <IconTablerShield />
             </span>
           </template>
           <template #actions>
@@ -671,6 +709,12 @@
           </template>
           <template v-else-if="isChatRoute">
             <CodexChat />
+          </template>
+          <template v-else-if="isTelemetryRoute">
+            <TelemetryDashboardPanel />
+          </template>
+          <template v-else-if="isAdminRoute">
+            <AdminDashboardPanel />
           </template>
           <template v-else-if="isHomeRoute">
             <div class="content-grid content-grid-home">
@@ -1250,6 +1294,8 @@ import IconTablerBolt from './components/icons/IconTablerBolt.vue'
 import IconTablerServer from './components/icons/IconTablerServer.vue'
 import IconTablerBrain from './components/icons/IconTablerBrain.vue'
 import IconTablerMessages from './components/icons/IconTablerMessages.vue'
+import IconTablerChartBar from './components/icons/IconTablerChartBar.vue'
+import IconTablerShield from './components/icons/IconTablerShield.vue'
 import IconTablerSearch from './components/icons/IconTablerSearch.vue'
 import IconTablerSettings from './components/icons/IconTablerSettings.vue'
 import IconTablerTerminal from './components/icons/IconTablerTerminal.vue'
@@ -1258,6 +1304,7 @@ import { useDesktopState } from './composables/useDesktopState'
 import { useMobile } from './composables/useMobile'
 import { useUiLanguage } from './composables/useUiLanguage'
 import { useFeedbackDiagnostics } from './composables/useFeedbackDiagnostics'
+import { useCodexAgent } from './composables/useCodexAgent'
 import {
   checkoutGitBranch,
   cloneGithubRepository,
@@ -1309,6 +1356,8 @@ const AutomationsPanel = defineAsyncComponent(() => import('./components/content
 const ProviderDashboard = defineAsyncComponent(() => import('./components/content/ProviderDashboard.vue'))
 const ModelCatalog = defineAsyncComponent(() => import('./components/content/ModelCatalog.vue'))
 const CodexChat = defineAsyncComponent(() => import('./components/content/CodexChat.vue'))
+const TelemetryDashboardPanel = defineAsyncComponent(() => import('./components/codex-agent/TelemetryDashboardPanel.vue'))
+const AdminDashboardPanel = defineAsyncComponent(() => import('./components/codex-agent/AdminDashboardPanel.vue'))
 const { t, uiLanguage, uiLanguageOptions, setUiLanguage } = useUiLanguage()
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'codex-web-local.sidebar-collapsed.v1'
@@ -1566,6 +1615,7 @@ const {
   recordVisibleFailure,
 } = useFeedbackDiagnostics()
 const feedbackMailto = feedbackMailtoBase()
+const { isAdmin } = useCodexAgent()
 
 function prepareFeedbackLink(event: MouseEvent, message?: string): void {
   if (message) {
@@ -1806,6 +1856,8 @@ const isAutomationsRoute = computed(() => route.name === 'automations')
 const isProvidersRoute = computed(() => route.name === 'providers')
 const isModelsRoute = computed(() => route.name === 'models')
 const isChatRoute = computed(() => route.name === 'chat')
+const isTelemetryRoute = computed(() => route.name === 'telemetry')
+const isAdminRoute = computed(() => route.name === 'admin')
 const routeAutomationId = computed(() => {
   const raw = route.query.automationId
   return typeof raw === 'string' ? raw : ''
@@ -1816,6 +1868,8 @@ const contentTitle = computed(() => {
   if (isChatRoute.value) return t('Chat')
   if (isProvidersRoute.value) return t('Providers')
   if (isModelsRoute.value) return t('Models')
+  if (isTelemetryRoute.value) return t('Telemetry')
+  if (isAdminRoute.value) return t('Admin')
   if (isHomeRoute.value) return t('Start new thread')
   return selectedThread.value?.title ?? t('Choose a thread')
 })
