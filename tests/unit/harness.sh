@@ -46,7 +46,8 @@ assert_dir "logs/pipeline"
 assert_dir "tests/unit"
 assert_dir "tests/integration"
 assert_dir "tests/e2e"
-assert_dir "src"
+assert_dir "backend"
+assert_dir "frontend"
 
 # --- Loop 2: Required README/index files ---
 echo ""
@@ -150,6 +151,82 @@ echo ""
 echo "[ Loop 10 ] Claude settings hook correctness"
 assert_contains ".claude/settings.json" "mkdir -p logs/telemetry"
 assert_contains ".claude/settings.json" "PostToolUse"
+
+# --- Loop 11: Backend adapters ---
+echo ""
+echo "[ Loop 11 ] Backend adapters"
+assert_nonempty "backend/src/adapters/base.ts"
+assert_nonempty "backend/src/adapters/opencode-zen.ts"
+assert_nonempty "backend/src/adapters/nemotron.ts"
+assert_nonempty "backend/src/adapters/openrouter-free.ts"
+assert_nonempty "backend/src/adapters/registry.ts"
+
+# --- Loop 12: Backend orchestrator ---
+echo ""
+echo "[ Loop 12 ] Backend orchestrator"
+assert_nonempty "backend/src/orchestrator/router.ts"
+assert_contains "backend/src/orchestrator/router.ts" "NoAdapterAvailableError"
+
+# --- Loop 13: Auth layer ---
+echo ""
+echo "[ Loop 13 ] Auth layer"
+assert_nonempty "backend/src/auth/jwt.ts"
+assert_nonempty "backend/src/auth/password.ts"
+assert_nonempty "backend/src/auth/middleware.ts"
+assert_nonempty "backend/src/auth/quota.ts"
+assert_contains "backend/src/auth/jwt.ts" "generateToken"
+assert_contains "backend/src/auth/middleware.ts" "authGuard"
+assert_contains "backend/src/auth/quota.ts" "quota"
+
+# --- Loop 14: API routes ---
+echo ""
+echo "[ Loop 14 ] API routes"
+assert_nonempty "backend/src/server/routes/auth.ts"
+assert_nonempty "backend/src/server/routes/admin.ts"
+assert_nonempty "backend/src/server/routes/telemetry.ts"
+assert_nonempty "backend/src/server/routes/chat.ts"
+assert_nonempty "backend/src/server/routes/providers.ts"
+assert_nonempty "backend/src/server/routes/threads.ts"
+assert_contains "backend/src/server/routes/admin.ts" "requireRole"
+assert_contains "backend/src/server/routes/telemetry.ts" "usage_log"
+
+# --- Loop 15: Multi-tenant DB schema ---
+echo ""
+echo "[ Loop 15 ] Multi-tenant DB schema"
+assert_contains "backend/src/storage/database.ts" "tenants"
+assert_contains "backend/src/storage/database.ts" "tenant_keys"
+assert_contains "backend/src/storage/database.ts" "usage_log"
+
+# --- Loop 16: Server wiring ---
+echo ""
+echo "[ Loop 16 ] Server wiring"
+assert_contains "backend/src/index.ts" "NemotronAdapter"
+assert_contains "backend/src/index.ts" "OpenRouterFreeAdapter"
+assert_contains "backend/src/server/httpServer.ts" "createAuthRouter"
+assert_contains "backend/src/server/httpServer.ts" "createAdminRouter"
+assert_contains "backend/src/server/httpServer.ts" "createTelemetryRouter"
+
+# --- Loop 17: Docker deployment ---
+echo ""
+echo "[ Loop 17 ] Docker deployment"
+assert_nonempty "docker-compose.yml"
+assert_nonempty "backend/Dockerfile"
+assert_nonempty "frontend/Dockerfile"
+assert_nonempty "frontend/nginx.conf"
+assert_contains "docker-compose.yml" "backend"
+assert_contains "docker-compose.yml" "frontend"
+
+# --- Loop 18: Frontend codex-agent extensions ---
+echo ""
+echo "[ Loop 18 ] Frontend codex-agent extensions"
+assert_nonempty "frontend/src/composables/useCodexAgent.ts"
+assert_contains "frontend/src/composables/useCodexAgent.ts" "isAdmin"
+assert_nonempty "frontend/src/components/codex-agent/AdminDashboardPanel.vue"
+assert_nonempty "frontend/src/components/codex-agent/TelemetryDashboardPanel.vue"
+assert_nonempty "frontend/src/components/codex-agent/ProviderDashboardPanel.vue"
+assert_contains "frontend/src/components/codex-agent/AdminDashboardPanel.vue" "isAdmin"
+assert_contains "frontend/src/router/index.ts" "admin"
+assert_contains "frontend/src/router/index.ts" "telemetry"
 
 # --- Summary ---
 echo ""
