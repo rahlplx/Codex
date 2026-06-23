@@ -6,15 +6,15 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 
 | Priority | Task | Owner | Feature |
 |----------|------|-------|---------|
-| P1 | Implement SQLite storage layer (threads, messages) | Engineer | F001 |
-| P2 | Frontend: connect Provider Dashboard to live `/api/providers` | Engineer | F002 |
-| P2 | Frontend: implement Chat view with WebSocket streaming | Engineer | F002 |
-| P2 | Add Antigravity CLI adapter | Engineer | F001 |
-| P2 | Add Nemotron/NIM adapter | Engineer | F001 |
-| P3 | Add Telegram bot bridge | Engineer | — |
-| P3 | Add 9Router sidecar integration | Engineer | — |
-| P3 | Docker Compose prod profile with Caddy reverse proxy | DevOps | — |
-| P3 | Add Playwright E2E tests for Provider Dashboard | Engineer | F002 |
+| P1 | Build Antigravity CLI adapter (OAuth flow) | Engineer | Backend |
+| P1 | Build KiloCode adapter | Engineer | Backend |
+| P1 | Implement dynamic model discovery scanner (hourly) | Engineer | Backend |
+| P2 | 9Router sidecar integration | Engineer | Backend |
+| P2 | CliRelay sidecar integration | Engineer | Backend |
+| P2 | Telegram bot bridge (port from codex-mobile) | Engineer | Feature |
+| P3 | Caddy/Traefik reverse proxy setup | DevOps | Deploy |
+| P3 | CLIProxyAPI + AIClient2API sidecar integration | Engineer | Backend |
+| P3 | E2E tests (Playwright) | Engineer | Testing |
 
 ## Done
 
@@ -50,3 +50,15 @@ Active tasks ordered by priority. Move items to DONE section when complete.
 | 2026-06-23 | Merge PR #6 to main; close PR #5 (stale from-scratch approach) |
 | 2026-06-23 | Implement OpenCode Zen adapter with 26 unit tests (TDD) |
 | 2026-06-23 | Wire POST /api/chat/completions (streaming + non-streaming, 16 tests, 53 total green) |
+| 2026-06-23 | Implement Nemotron/NIM adapter |
+| 2026-06-23 | Implement OpenRouter Free adapter |
+| 2026-06-23 | Implement auth layer (JWT, PBKDF2, authGuard middleware) |
+| 2026-06-23 | Implement admin tenant management API (GET/PUT/DELETE /api/admin/tenants) |
+| 2026-06-23 | Implement telemetry routes (rankings, usage, reliability, speed, summary) |
+| 2026-06-23 | Implement quota enforcement middleware (429 when daily limit exceeded) |
+| 2026-06-23 | Add multi-tenant DB schema (tenants, tenant_keys, usage_log) |
+| 2026-06-23 | Add Docker Compose + Dockerfiles + nginx config |
+| 2026-06-23 | Add frontend codex-agent panels (Admin, Telemetry, Provider) |
+| 2026-06-23 | Add useCodexAgent composable with auth + admin guard |
+| 2026-06-23 | Add /telemetry and /admin routes to Vue Router |
+| 2026-06-23 | Evolve harness from 64 to 109 assertions (Loops 11-18) |
