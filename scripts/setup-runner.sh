@@ -15,7 +15,7 @@ set -euo pipefail
 OWNER="rahlplx"
 REPO="Codex"
 RUNNER_DIR="${HOME}/actions-runner"
-RUNNER_VERSION="2.325.0"
+RUNNER_VERSION="2.335.1"
 
 # --- Check dependencies ---
 for cmd in curl tar python3; do
