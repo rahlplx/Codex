@@ -2,12 +2,12 @@ import { Router } from 'express'
 import type { Database } from 'better-sqlite3'
 import { authGuard, requireRole } from '../../auth/middleware.js'
 
+const adminGuard = [authGuard, requireRole('admin')] as const
+
 export function createAdminRouter(db: Database): Router {
   const router = Router()
 
-  router.use(authGuard, requireRole('admin'))
-
-  router.get('/api/admin/tenants', (_req, res) => {
+  router.get('/api/admin/tenants', ...adminGuard, (_req, res) => {
     const tenants = db.prepare(`
       SELECT t.id, t.email, t.display_name, t.role, t.created_at, t.last_active,
              COALESCE(u.total_tokens, 0) as total_tokens,
@@ -25,7 +25,7 @@ export function createAdminRouter(db: Database): Router {
     res.json(tenants)
   })
 
-  router.put('/api/admin/tenants/:id/role', (req, res) => {
+  router.put('/api/admin/tenants/:id/role', ...adminGuard, (req, res) => {
     const { role } = req.body as { role?: string }
     if (role !== 'admin' && role !== 'user') {
       res.status(400).json({ error: 'role must be "admin" or "user"' })
@@ -40,15 +40,14 @@ export function createAdminRouter(db: Database): Router {
     res.json({ updated: true })
   })
 
-  router.delete('/api/admin/tenants/:id', (req, res) => {
+  router.delete('/api/admin/tenants/:id', ...adminGuard, (req, res) => {
     if (req.tenant?.sub === req.params.id) {
       res.status(400).json({ error: 'Cannot delete your own account' })
       return
     }
     try {
-      // Delete tenant and all owned data in one transaction.
-      // threads has no FK cascade to tenants, so we clean up explicitly.
       const deleted = db.transaction(() => {
+        db.prepare('DELETE FROM usage_log WHERE tenant_id = ?').run(req.params.id)
         db.prepare('DELETE FROM threads WHERE user_id = ?').run(req.params.id)
         const r = db.prepare('DELETE FROM tenants WHERE id = ?').run(req.params.id)
         return r.changes
