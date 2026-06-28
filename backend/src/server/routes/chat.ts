@@ -48,8 +48,16 @@ export function createChatRouter(
       const personal = tenantAdapters.listActive(tenantId)
       if (personal.length > 0) {
         const targetId = typeof adapter_id === 'string' ? adapter_id : null
-        const row = (targetId ? personal.find(a => a.id === targetId) : null) ?? personal[0]!
-        adapter = new UserProxyAdapter(row)
+        if (targetId) {
+          const row = personal.find(a => a.id === targetId)
+          if (!row) {
+            res.status(400).json({ error: `adapter_id '${targetId}' not found or not active` })
+            return
+          }
+          adapter = new UserProxyAdapter(row)
+        } else {
+          adapter = new UserProxyAdapter(personal[0]!)
+        }
       }
     }
     if (!adapter) {

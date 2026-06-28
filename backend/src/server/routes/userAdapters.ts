@@ -25,6 +25,16 @@ export function createUserAdaptersRouter(repo: TenantAdapterRepository): Router 
       return
     }
     try {
+      const parsed = new URL(baseUrl)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        res.status(400).json({ error: 'baseUrl must use http or https' })
+        return
+      }
+    } catch {
+      res.status(400).json({ error: 'baseUrl must be a valid URL' })
+      return
+    }
+    try {
       const insertArgs: { tenantId: string; name: string; baseUrl: string; apiKey?: string; label?: string } = {
         tenantId: req.tenant!.sub,
         name,

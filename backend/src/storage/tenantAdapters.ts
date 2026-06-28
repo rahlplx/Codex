@@ -79,16 +79,7 @@ export class TenantAdapterRepository {
     const label = row.label ?? row.name
     const keyBuf = Buffer.from(row.apiKey ?? '')
     this.stmtInsert.run(id, row.tenantId, keyBuf, label, row.baseUrl)
-    return {
-      id,
-      tenantId: row.tenantId,
-      name: label,
-      baseUrl: row.baseUrl,
-      apiKey: row.apiKey,
-      label,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    }
+    return this.findById(id, row.tenantId)!
   }
 
   delete(id: string, tenantId: string): boolean {
